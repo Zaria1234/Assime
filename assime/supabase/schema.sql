@@ -183,3 +183,27 @@ do $$ begin
   begin alter publication supabase_realtime add table public.boutiques; exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.coups_de_coeur; exception when duplicate_object then null; end;
 end $$;
+
+-- =====================================================================
+-- Données qui suivent le compte : listes de marché et favoris
+-- =====================================================================
+alter table public.profils add column if not exists favoris jsonb not null default '[]'::jsonb;
+
+create table if not exists public.listes (
+  id text not null,
+  auteur uuid not null references auth.users on delete cascade default auth.uid(),
+  nom text not null default 'Ma liste' check (char_length(nom) between 1 and 80),
+  budget integer not null default 0 check (budget >= 0),
+  items jsonb not null default '[]'::jsonb,  -- [{id, nom, prix, qte, fait}]
+  cree_le timestamptz not null default now(),
+  maj_le timestamptz not null default now(),
+  primary key (auteur, id)
+);
+drop trigger if exists listes_maj on public.listes;
+create trigger listes_maj before update on public.listes for each row execute function public.toucher_maj();
+
+-- Listes : chacun les siennes
+alter table public.listes enable row level security;
+drop policy if exists "listes de leur auteur" on public.listes;
+create policy "listes de leur auteur" on public.listes for all to authenticated
+  using (auteur = auth.uid()) with check (auteur = auth.uid());

@@ -1,5 +1,23 @@
 # Journal des versions
 
+## 1.5.0 — 14 novembre 2026
+
+### Vrais comptes
+- **Par téléphone** : nouvelle fonction serveur `api/compte.js` (clé `SUPABASE_SERVICE_ROLE_KEY`, côté serveur uniquement). Elle crée ou retrouve un vrai compte Supabase lié au numéro et ouvre une vraie session. Code SMS de démonstration (n'importe quels 6 chiffres) : un seul endroit à brancher plus tard, `codeSmsValide()`.
+- **Par e-mail** : code à 6 chiffres ou lien « Log In » envoyé par Supabase. Choix « Par téléphone » / « Par e-mail » à l'inscription et à la connexion.
+- **Connexion = numéro seul** : le prénom et le rôle sont relus sur le serveur, plus jamais redemandés.
+- **Se déconnecter** (Profil) : fin de session, données du compte effacées du téléphone, retour à Bienvenue.
+- Comptes anonymes seulement pour « Continuer sans compte » (et un vote sans compte).
+
+### Un nouveau compte commence vide
+- Une seule liste « Ma liste », sans article, budget à remplir ; historique, favoris, missions, points, raccourcis et intérêts à zéro.
+- Les exemples (liste « Marché de samedi », trajet simulé) n'arrivent qu'avec **Mode démo**.
+- Les boutiques du marché restent : elles appartiennent au marché, pas au compte.
+
+### Données qui suivent le compte
+- Nouvelle table `listes` (RLS : chacun les siennes) et colonne `profils.favoris`.
+- Listes et favoris synchronisés ; un vendeur qui se reconnecte retrouve **sa** boutique.
+
 ## 1.4.1 — 14 novembre 2026
 
 ### IA plus fiable

@@ -1,27 +1,32 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { pathToFileURL } from 'node:url'
+import path from 'node:path'
 
-// En local (npm run dev), sert /api/ia comme le fera Vercel en ligne.
-// La clé est lue dans .env.local (GEMINI_API_KEY) et reste côté serveur.
+// En local (npm run dev), sert /api/ia et /api/compte comme le fera Vercel en ligne.
+// Les clés sont lues dans .env.local (GEMINI_API_KEY, SUPABASE_SERVICE_ROLE_KEY) et restent côté serveur.
+const ROUTES = { '/api/ia': ['/api/ia.js', 'repondreIA'], '/api/compte': ['/api/compte.js', 'traiterCompte'] }
 function apiLocale(env) {
   return {
     name: 'assime-api-locale',
-    configureServer(server) {
-      server.middlewares.use('/api/ia', async (req, res) => {
+    configureServer(server) { brancher(server) },
+    configurePreviewServer(server) { brancher(server) }, // aussi avec npm run preview (version de production)
+  }
+  function brancher(server) {
+      for (const [route, [fichier, fonction]] of Object.entries(ROUTES)) server.middlewares.use(route, async (req, res) => {
         res.setHeader('Content-Type', 'application/json; charset=utf-8')
         if (req.method !== 'POST') { res.statusCode = 405; return res.end('{"erreur":"POST uniquement"}') }
         let brut = ''
         for await (const morceau of req) brut += morceau
         try {
-          const { repondreIA } = await server.ssrLoadModule('/api/ia.js')
-          const { statut, json } = await repondreIA(JSON.parse(brut || '{}'), env)
+          const module = server.ssrLoadModule ? await server.ssrLoadModule(fichier) : await import(pathToFileURL(path.join(process.cwd(), fichier)).href)
+          const { statut, json } = await module[fonction](JSON.parse(brut || '{}'), env)
           res.statusCode = statut; res.end(JSON.stringify(json))
         } catch (e) {
           res.statusCode = 500; res.end(JSON.stringify({ erreur: String(e?.message || e) }))
         }
       })
-    },
   }
 }
 

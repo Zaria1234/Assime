@@ -51,6 +51,24 @@ Ensuite, crée une boutique dans l'espace vendeur sur un téléphone : elle appa
 
 ---
 
+## Comptes
+
+| Moyen | Comment ça marche |
+| --- | --- |
+| **Téléphone** | `POST /api/compte` (fonction Vercel) crée ou retrouve le compte `<numéro>@tel.assime.app`, puis renvoie un jeton que l'app échange contre une session (`verifyOtp`, type `magiclink`). **Code SMS de démo** : n'importe quels 6 chiffres. Pour un vrai SMS, remplir `codeSmsValide()` dans `api/compte.js`. |
+| **E-mail** | `signInWithOtp` → Supabase envoie un e-mail → code à 6 chiffres (`verifyOtp`, type `email`) ou lien « Log In ». |
+| **Sans compte** | Compte anonyme, seulement avec « Continuer sans compte ». |
+
+- **Inscription** = numéro (ou e-mail) + prénom + rôle. **Connexion** = numéro seul : prénom et rôle relus dans `profils`.
+- **Nouveau compte = tout vide** (liste, favoris, historique, missions, points). Les boutiques du marché restent.
+- **Se déconnecter** efface du téléphone les données du compte ; elles reviennent à la reconnexion.
+- Variable **serveur** `SUPABASE_SERVICE_ROLE_KEY` (Vercel → Environment Variables, **sans** préfixe `VITE_`). Elle ne doit jamais aller dans `src/` ni dans Git.
+
+### E-mails : à savoir
+- Sur l'offre gratuite, Supabase utilise son propre serveur d'envoi : **2 e-mails par heure**, et seulement vers les adresses des membres de l'organisation Supabase.
+- Le **modèle d'e-mail ne peut pas être modifié** sans SMTP personnalisé : l'e-mail contient donc un **lien « Log In »** (qui connecte directement). Pour afficher le code à 6 chiffres : brancher un SMTP (Authentication → SMTP Settings, ex. Brevo ou Resend, gratuits), puis ajouter `{{ .Token }}` dans Authentication → Email Templates → **Magic Link** et **Confirm signup**.
+- URL de retour autorisées : Authentication → URL Configuration (`https://assime-xi.vercel.app/**`).
+
 ## Ce qui est partagé
 
 | Donnée | Qui lit | Qui écrit |
@@ -59,7 +77,8 @@ Ensuite, crée une boutique dans l'espace vendeur sur un téléphone : elle appa
 | Photos (bucket `photos`) | Tout le monde | Chacun dans **son dossier** |
 | Coups de cœur | **Total public** = max(0, 👍 − 👎) | Un vote par personne et par boutique |
 | Pouces baissés (détail) | **Seulement le vendeur** de la boutique | — |
-| Profil (prénom, téléphone, rôle) | Soi-même | Soi-même |
+| Profil (prénom, téléphone, rôle, favoris) | Soi-même | Soi-même |
+| Listes de marché (table `listes`) | Soi-même | Soi-même |
 | Relevés de trajets (cartographie) | Leur auteur (et l'admin) | Envoyés à la fin d'un trajet, **sans nom** |
 
 Protections supplémentaires :

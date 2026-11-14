@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../store'
 import { Screen, TopBar, Icon, I } from '../components/ui'
+import { supabase, connexionTelephone, envoyerCodeEmail, verifierCodeEmail } from '../lib/supabase'
 
 const LANGUES = [{ id: 'ewe', nom: 'Éwé' }, { id: 'mina', nom: 'Mina' }, { id: 'fr', nom: 'Français' }]
 
 export function Bienvenue() {
   const nav = useNavigate()
-  const { langue, setLangue } = useApp()
+  const { langue, setLangue, continuerSansCompte } = useApp()
   return (
     <Screen fond="#FFFFFF">
       <div className="flex-1 flex flex-col px-6 pt-7 pb-7 relative overflow-hidden">
@@ -53,7 +54,7 @@ export function Bienvenue() {
             <span className="flex-1 text-center font-bold -ml-11">Créer mon compte</span>
           </button>
           <Link to="/connexion" className="btn h-[50px] bg-white text-ink border border-line">J'ai déjà un compte</Link>
-          <Link to="/carte" className="text-center text-muted underline font-semibold py-1">Continuer sans compte</Link>
+          <Link to="/carte" onClick={continuerSansCompte} className="text-center text-muted underline font-semibold py-1">Continuer sans compte</Link>
         </div>
       </div>
     </Screen>
@@ -69,30 +70,74 @@ function Telephone({ value, onChange }) {
   )
 }
 
+const emailValide = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim())
+
+/** Choix « Par téléphone » / « Par e-mail » (seulement si la base en ligne est branchée) */
+function Canal({ canal, setCanal }) {
+  if (!supabase) return null
+  return (
+    <div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-[#F2F4F3] mt-4" role="group" aria-label="Moyen de connexion">
+      {[['tel', 'Par téléphone'], ['email', 'Par e-mail']].map(([id, t]) => (
+        <button key={id} type="button" onClick={() => setCanal(id)} aria-pressed={canal === id}
+          className={'h-10 rounded-full text-[14px] font-semibold ' + (canal === id ? 'bg-white text-brand shadow' : 'text-muted')}>{t}</button>
+      ))}
+    </div>
+  )
+}
+
+function ChampContact({ canal, tel, setTel, email, setEmail }) {
+  return canal === 'email' ? (
+    <>
+      <label htmlFor="email" className="label mt-4 mb-1.5">Adresse e-mail</label>
+      <input id="email" type="email" inputMode="email" autoComplete="email" className="field" placeholder="toi@exemple.com" value={email} onChange={e => setEmail(e.target.value)} />
+      <p className="mt-2 text-xs text-muted">L'e-mail peut prendre une minute. Pense à regarder dans les spams.</p>
+    </>
+  ) : (
+    <>
+      <label htmlFor="tel" className="label mt-4 mb-1.5">Numéro de téléphone</label>
+      <Telephone value={tel} onChange={setTel} />
+    </>
+  )
+}
+
 export function Inscription() {
   const nav = useNavigate()
   const { setUser } = useApp()
+  const [canal, setCanal] = useState('tel')
   const [prenom, setPrenom] = useState('')
   const [tel, setTel] = useState('')
+  const [email, setEmail] = useState('')
   const [role, setRole] = useState('acheteur')
   const [ok, setOk] = useState(true)
-  const valide = prenom.trim() && tel.replace(/\D/g, '').length >= 8 && ok
-  const envoyer = e => {
+  const [attente, setAttente] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const contactOk = canal === 'email' ? emailValide(email) : tel.replace(/\D/g, '').length >= 8
+  const valide = prenom.trim() && contactOk && ok && !attente
+  const envoyer = async e => {
     e.preventDefault()
     if (!valide) return
-    setUser({ prenom: prenom.trim(), tel, role, verifie: false })
-    nav('/code', { state: { suite: role === 'vendeur' ? '/vendeur' : '/carte' } })
+    const infos = { prenom: prenom.trim(), role }
+    if (!supabase) { // mode local : tout reste sur le téléphone
+      setUser({ ...infos, tel, verifie: false })
+      return nav('/code', { state: { canal: 'local', suite: role === 'vendeur' ? '/vendeur' : '/carte' } })
+    }
+    if (canal === 'email') {
+      setAttente(true); setErreur('')
+      try { await envoyerCodeEmail(email.trim(), infos) } catch (err) { setAttente(false); return setErreur(err.message || 'Envoi impossible') }
+      return nav('/code', { state: { canal: 'email', email: email.trim(), ...infos } })
+    }
+    nav('/code', { state: { canal: 'tel', telephone: tel, ...infos } })
   }
   return (
     <Screen fond="#FFFFFF">
       <form onSubmit={envoyer} className="flex-1 flex flex-col">
         <TopBar title="Créer mon compte" back="/" />
         <div className="flex-1 scroll px-6 flex flex-col">
-          <p className="text-[15px] text-[#2D4A40]">Deux minutes, et tu gardes tes trajets et tes boutiques préférées.</p>
+          <p className="text-[15px] text-[#2D4A40]">Deux minutes, et tu gardes ta liste, tes trajets et tes boutiques préférées.</p>
+          <Canal canal={canal} setCanal={setCanal} />
           <label htmlFor="prenom" className="label mt-5 mb-1.5">Prénom</label>
           <input id="prenom" className="field" placeholder="Ton prénom" value={prenom} onChange={e => setPrenom(e.target.value)} autoComplete="given-name" />
-          <label htmlFor="tel" className="label mt-4 mb-1.5">Numéro de téléphone</label>
-          <Telephone value={tel} onChange={setTel} />
+          <ChampContact canal={canal} tel={tel} setTel={setTel} email={email} setEmail={setEmail} />
           <div className="label mt-5 mb-2">Je crée un compte pour…</div>
           <div className="grid grid-cols-2 gap-2.5">
             {[{ id: 'acheteur', t: 'Acheter', s: 'Me repérer, trouver des boutiques' }, { id: 'vendeur', t: 'Vendre', s: 'Ma boutique sur la carte, et la navigation aussi' }].map(r => (
@@ -106,9 +151,10 @@ export function Inscription() {
             <input type="checkbox" checked={ok} onChange={e => setOk(e.target.checked)} className="w-5 h-5 accent-accent mt-0.5" />
             J'accepte les conditions d'utilisation. Mes trajets restent sur mon téléphone sauf si je choisis de les partager.
           </label>
+          {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
         </div>
         <div className="px-6 pb-7 pt-3">
-          <button type="submit" disabled={!valide} className="btn btn-main w-full h-[52px]">Recevoir mon code</button>
+          <button type="submit" disabled={!valide} className="btn btn-main w-full h-[52px]">{attente ? 'Envoi…' : 'Recevoir mon code'}</button>
           <p className="mt-3.5 text-center text-sm text-[#2D4A40]">Déjà un compte ? <Link to="/connexion" className="font-semibold text-brand">Me connecter</Link></p>
         </div>
       </form>
@@ -119,24 +165,36 @@ export function Inscription() {
 export function Connexion() {
   const nav = useNavigate()
   const { user, setUser } = useApp()
-  const [tel, setTel] = useState(user?.tel || '')
-  const envoyer = e => {
+  const [canal, setCanal] = useState('tel')
+  const [tel, setTel] = useState(user?.tel?.replace(/^228/, '') || '')
+  const [email, setEmail] = useState(user?.email || '')
+  const [attente, setAttente] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const valide = (canal === 'email' ? emailValide(email) : tel.replace(/\D/g, '').length >= 8) && !attente
+  const envoyer = async e => {
     e.preventDefault()
-    if (tel.replace(/\D/g, '').length < 8) return
-    if (!user) setUser({ prenom: '', tel, role: 'acheteur', verifie: false })
-    nav('/code', { state: { suite: user?.role === 'vendeur' ? '/vendeur' : '/carte' } })
+    if (!valide) return
+    if (!supabase) {
+      if (!user) setUser({ prenom: '', tel, role: 'acheteur', verifie: false })
+      return nav('/code', { state: { canal: 'local', suite: user?.role === 'vendeur' ? '/vendeur' : '/carte' } })
+    }
+    if (canal === 'email') {
+      setAttente(true); setErreur('')
+      try { await envoyerCodeEmail(email.trim()) } catch (err) { setAttente(false); return setErreur(err.message || 'Envoi impossible') }
+      return nav('/code', { state: { canal: 'email', email: email.trim() } })
+    }
+    nav('/code', { state: { canal: 'tel', telephone: tel } })
   }
   return (
     <Screen fond="#FFFFFF">
       <form onSubmit={envoyer} className="flex-1 flex flex-col">
         <TopBar title="Me connecter" back="/" />
         <div className="flex-1 px-6 flex flex-col">
-          <p className="text-[15px] text-[#2D4A40]">Entre ton numéro, on t'envoie un code. Pas besoin de mot de passe.</p>
-          <label htmlFor="tel" className="label mt-6 mb-2">Numéro</label>
-          <Telephone value={tel} onChange={setTel} />
-          <button type="submit" className="btn btn-main h-[52px] mt-5">Recevoir le code par SMS</button>
-          <div className="my-6 flex items-center gap-3 text-[13px] text-muted"><span className="flex-1 h-px bg-line" />ou<span className="flex-1 h-px bg-line" /></div>
-          <button type="submit" className="btn btn-ghost h-[52px]">Recevoir le code par WhatsApp</button>
+          <p className="text-[15px] text-[#2D4A40]">{canal === 'email' ? 'Entre ton e-mail, on t\'envoie un code.' : 'Entre ton numéro, on t\'envoie un code.'} Pas besoin de mot de passe.</p>
+          <Canal canal={canal} setCanal={setCanal} />
+          <ChampContact canal={canal} tel={tel} setTel={setTel} email={email} setEmail={setEmail} />
+          {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+          <button type="submit" disabled={!valide} className="btn btn-main h-[52px] mt-5">{attente ? 'Envoi…' : canal === 'email' ? 'Recevoir le code par e-mail' : 'Recevoir le code par SMS'}</button>
           <div className="flex-1" />
           <p className="text-center text-sm text-[#2D4A40] mb-7">Pas encore de compte ? <Link to="/inscription" className="font-semibold text-brand">Créer un compte</Link></p>
         </div>
@@ -148,28 +206,55 @@ export function Connexion() {
 export function Code() {
   const nav = useNavigate()
   const { state } = useLocation()
-  const { user, setUser } = useApp()
+  const { user, setUser, ouvrirSession } = useApp()
   const [code, setCode] = useState('')
-  const valider = e => {
+  const [attente, setAttente] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const canal = state?.canal || 'local'
+  const suite = role => (role === 'vendeur' ? '/vendeur' : '/carte')
+  const valider = async e => {
     e.preventDefault()
-    if (code.length < 6) return
-    // Démo : tout code à 6 chiffres est accepté. Le back-end vérifiera le vrai code.
-    setUser({ ...(user || {}), verifie: true })
-    nav(user?.prenom ? state?.suite || '/carte' : '/role')
+    if (code.length < 6 || attente) return
+    if (canal === 'local') {
+      // Sans base en ligne : tout code à 6 chiffres est accepté, le compte reste sur le téléphone
+      setUser({ ...(user || {}), verifie: true })
+      return nav(user?.prenom ? state?.suite || '/carte' : '/role')
+    }
+    setAttente(true); setErreur('')
+    try {
+      if (canal === 'tel') {
+        const { uid, profil } = await connexionTelephone({ telephone: state.telephone, prenom: state.prenom, role: state.role, code })
+        ouvrirSession(uid, { prenom: profil.prenom, tel: profil.telephone, role: profil.role })
+        return nav(profil.prenom ? suite(profil.role) : '/role', { replace: true })
+      }
+      const { uid, meta } = await verifierCodeEmail(state.email, code)
+      const prenom = state.prenom || meta.prenom || ''
+      const role = state.role || meta.role || 'acheteur'
+      ouvrirSession(uid, { prenom, role, email: state.email })
+      nav(prenom ? suite(role) : '/role', { replace: true })
+    } catch (err) {
+      setAttente(false)
+      setErreur(/expired|invalid/i.test(err.message || '') ? 'Code incorrect ou expiré.' : err.message || 'Connexion impossible')
+    }
   }
-  const masque = user?.tel ? user.tel.replace(/\D/g, '').replace(/^(\d{2})\d+(\d{2})$/, '$1 •• •• $2') : ''
+  const masque = canal === 'email' ? state?.email
+    : '+228 ' + String(state?.telephone || user?.tel || '').replace(/\D/g, '').replace(/^(\d{2})\d+(\d{2})$/, '$1 •• •• $2')
   return (
     <Screen fond="#FFFFFF">
       <form onSubmit={valider} className="flex-1 flex flex-col">
         <TopBar title="Entre le code reçu" />
         <div className="px-6 flex flex-col">
-          <p className="text-[15px] text-[#2D4A40]">Envoyé au +228 {masque}</p>
+          <p className="text-[15px] text-[#2D4A40]">Envoyé à {masque}</p>
           <label htmlFor="code" className="label mt-6 mb-2">Code à 6 chiffres</label>
           <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             className="field text-center font-display text-3xl tracking-[0.5em] h-16" placeholder="••••••" />
-          <p className="mt-3 text-xs text-muted">Version de démonstration : n'importe quel code à 6 chiffres fonctionne.</p>
-          <button type="submit" disabled={code.length < 6} className="btn btn-main h-[52px] mt-6">Valider</button>
+          <p className="mt-3 text-xs text-muted">
+            {canal === 'email' ? "L'e-mail peut prendre une minute. S'il contient un lien « Log In » au lieu d'un code, touche simplement le lien : tu seras connecté·e."
+              : "Version de démonstration : n'importe quel code à 6 chiffres fonctionne."}
+          </p>
+          {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+          <button type="submit" disabled={code.length < 6 || attente} className="btn btn-main h-[52px] mt-6">{attente ? 'Connexion…' : 'Valider'}</button>
         </div>
       </form>
     </Screen>

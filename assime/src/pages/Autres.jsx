@@ -318,10 +318,14 @@ export function Missions() {
   )
 }
 
+// « 22890112201 » ou « 90112201 » → « +228 90112201 »
+const numero = tel => { const d = String(tel || '').replace(/\D/g, ''); return d ? '+228 ' + (d.length > 8 && d.startsWith('228') ? d.slice(3) : d) : '' }
+
 export function Profil() {
   const nav = useNavigate()
-  const { user, setUser, langue, setLangue, historique, favoris, boutique, points } = useApp()
-  const deconnexion = () => { setUser(null); nav('/') }
+  const { user, setUser, langue, setLangue, historique, favoris, boutique, points, seDeconnecter } = useApp()
+  // Déconnexion : fin de la session, données du compte effacées du téléphone, retour à l'écran Bienvenue
+  const deconnexion = async () => { await seDeconnecter(); nav('/bienvenue', { replace: true }) }
   return (
     <Screen nav>
       <div className="px-5 pt-5 pb-3.5 flex items-center gap-3.5">
@@ -330,7 +334,7 @@ export function Profil() {
         </div>
         <div className="flex-1">
           <div className="font-display text-[22px] font-bold">{user?.prenom || 'Invité·e'}</div>
-          <div className="text-[13px] text-muted">{user ? '+228 ' + user.tel + ' · ' + (user.role === 'vendeur' ? 'Vendeur·se' : 'Acheteur·se') : 'Sans compte'}</div>
+          <div className="text-[13px] text-muted">{user ? (user.email || numero(user.tel)) + ' · ' + (user.role === 'vendeur' ? 'Vendeur·se' : 'Acheteur·se') : 'Sans compte'}</div>
         </div>
       </div>
       <div className="flex-1 min-h-0 scroll no-scrollbar px-5 pb-6 flex flex-col gap-4">
@@ -372,7 +376,7 @@ export function Profil() {
               <option value="ewe">Éwé</option><option value="mina">Mina</option><option value="fr">Français</option>
             </select>
           </label>
-          {user && <button type="button" onClick={deconnexion} className="w-full text-left px-3.5 py-3 text-sm font-semibold text-red-700">Me déconnecter</button>}
+          {user && <button type="button" onClick={deconnexion} className="w-full text-left px-3.5 py-3 text-sm font-semibold text-red-700">Se déconnecter</button>}
         </div>
       </div>
     </Screen>

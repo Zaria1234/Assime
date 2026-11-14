@@ -6,11 +6,31 @@ const url = import.meta.env.VITE_SUPABASE_URL
 const cle = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = url && cle
-  ? createClient(url, cle, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'assime_auth' } })
+  ? createClient(url, cle, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'assime_auth', detectSessionInUrl: false } })
   : null
 
-/** Identité du téléphone : on crée un compte anonyme la première fois (aucun SMS nécessaire).
- *  Une seule demande à la fois, même si l'app la réclame deux fois au démarrage. */
+/** Retour du lien « Log In » de l'e-mail : la session arrive dans l'adresse (#access_token=…).
+ *  On l'ouvre nous-mêmes puis on nettoie l'adresse (la détection automatique bloquait le démarrage). */
+const sessionDuLien = (() => {
+  if (!supabase || typeof window === 'undefined') return Promise.resolve()
+  const p = new URLSearchParams(window.location.hash.slice(1))
+  const access_token = p.get('access_token'), refresh_token = p.get('refresh_token')
+  if (!access_token || !refresh_token) return Promise.resolve()
+  window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  return supabase.auth.setSession({ access_token, refresh_token }).catch(() => { /* lien expiré : on reste déconnecté */ })
+})()
+
+/** Session déjà ouverte sur ce téléphone (vrai compte ou anonyme), sans en créer : { uid, anonyme } ou null */
+export async function sessionActuelle() {
+  if (!supabase) return null
+  await sessionDuLien
+  const { data } = await supabase.auth.getSession()
+  const u = data.session?.user
+  return u ? { uid: u.id, anonyme: !!u.is_anonymous } : null
+}
+
+/** Identité pour « Continuer sans compte » (et un vote sans compte) : compte anonyme créé la première fois.
+ *  Une seule demande à la fois, même si l'app la réclame deux fois. */
 let enCours = null
 export function identite() {
   if (!supabase) return Promise.resolve(null)
@@ -24,6 +44,63 @@ export function identite() {
     })().catch(e => { enCours = null; throw e })
   }
   return enCours
+}
+
+// ---------- Vrais comptes : téléphone (code de démo, via /api/compte) ou e-mail (Supabase) ----------
+/** Téléphone : le serveur crée ou retrouve le compte, puis on échange son jeton contre une vraie session.
+ *  Renvoie { uid, profil: { prenom, telephone, role }, nouveau } */
+export async function connexionTelephone({ telephone, prenom, role, code }) {
+  const r = await fetch('/api/compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telephone, prenom, role, code }) })
+  const json = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(json.erreur || 'Connexion impossible (' + r.status + ')')
+  enCours = null
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: json.token_hash, type: 'magiclink' })
+  if (error) throw error
+  return { uid: data.user.id, profil: json.profil, nouveau: json.nouveau }
+}
+
+/** E-mail : Supabase envoie un message avec un lien de connexion (et le code à 6 chiffres si le modèle l'affiche) */
+export async function envoyerCodeEmail(email, { prenom = '', role = 'acheteur' } = {}) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email, options: { shouldCreateUser: true, data: { prenom, role }, emailRedirectTo: window.location.origin + '/' },
+  })
+  if (error) throw error
+}
+export async function verifierCodeEmail(email, token) {
+  enCours = null
+  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+  if (error) throw error
+  return { uid: data.user.id, meta: data.user.user_metadata || {} }
+}
+
+export async function deconnecter() {
+  enCours = null
+  if (supabase) await supabase.auth.signOut().catch(() => {})
+}
+
+/** Ce qui suit le compte : profil (prénom, rôle, favoris), listes de marché et boutique du vendeur */
+export async function chargerCompte(uid) {
+  const [p, l, b] = await Promise.all([
+    supabase.from('profils').select('prenom, telephone, role, favoris').eq('id', uid).maybeSingle(),
+    supabase.from('listes').select('id, nom, budget, items').order('cree_le'),
+    supabase.from('boutiques').select('id').eq('proprietaire', uid).order('cree_le').limit(1),
+  ])
+  if (p.error) throw p.error
+  if (l.error) throw l.error
+  const { data: u } = await supabase.auth.getUser()
+  return { profil: p.data, listes: l.data || [], boutique: b.data?.[0]?.id || null, email: u?.user?.email || '', meta: u?.user?.user_metadata || {} }
+}
+
+/** Envoie toutes mes listes (et supprime celles que j'ai effacées) */
+export async function enregistrerListes(listes, uid) {
+  const lignes = listes.map(l => ({ id: l.id, auteur: uid, nom: (l.nom || 'Ma liste').slice(0, 80), budget: Math.max(0, Math.round(Number(l.budget) || 0)), items: l.items || [] }))
+  const { error } = await supabase.from('listes').upsert(lignes, { onConflict: 'auteur,id' })
+  if (error) throw error
+  const ids = lignes.map(l => l.id)
+  let q = supabase.from('listes').delete().eq('auteur', uid)
+  if (ids.length) q = q.not('id', 'in', '(' + ids.map(i => '"' + i + '"').join(',') + ')')
+  const { error: e2 } = await q
+  if (e2) throw e2
 }
 
 // ---------- Conversion boutique app ⇄ ligne de la base ----------
@@ -91,9 +168,9 @@ export async function envoyerVote(boutiqueId, sens, uid) {
 }
 
 // ---------- Profil et relevés ----------
-export async function enregistrerProfil(user, uid) {
+export async function enregistrerProfil(user, uid, favoris = []) {
   if (!user) return
-  const { error } = await supabase.from('profils').upsert({ id: uid, prenom: user.prenom || '', telephone: user.tel || '', role: user.role || 'acheteur' })
+  const { error } = await supabase.from('profils').upsert({ id: uid, prenom: user.prenom || '', telephone: user.tel || '', role: user.role || 'acheteur', favoris })
   if (error) throw error
 }
 
