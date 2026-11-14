@@ -83,7 +83,7 @@ export function Carte() {
                 <label htmlFor="racc" className="sr-only">Nouveau raccourci</label>
                 <input id="racc" autoFocus value={nouveau} onChange={e => setNouveau(e.target.value)} placeholder="ex. Ramco" className="w-24 bg-transparent text-[13px] outline-none" />
                 <button type="submit" className="h-7 px-2.5 rounded-full bg-ink text-white text-[12px] font-semibold">Ajouter</button>
-                <button type="button" onClick={() => setEdition(false)} className="h-7 px-2 text-[12px] font-semibold text-muted">OK</button>
+                <button type="button" onClick={() => setEdition(false)} className="h-7 px-2 text-[12px] font-semibold text-muted">Fini</button>
               </form>
             ) : (
               <button type="button" onClick={() => setEdition(true)} aria-label="Gérer mes raccourcis" className="h-9 w-9 rounded-full bg-white border border-line text-ink text-lg font-semibold">+</button>
@@ -237,7 +237,7 @@ export function Recherche() {
   }
   const micro = async () => {
     setErreur(''); setEcoute(true)
-    try { setQ(await ecouter()) } catch (e) { setErreur('Micro indisponible : ' + e.message) } finally { setEcoute(false) }
+    try { setQ(await ecouter()) } catch (e) { console.error('[Assimé] micro', e); setErreur('Micro indisponible. Écris ta recherche.') } finally { setEcoute(false) }
   }
   const allerA = r => nav(`/guidage/ext?lat=${r.pos[0]}&lng=${r.pos[1]}&nom=${encodeURIComponent(r.nom)}&note=${encodeURIComponent(r.adresse || '')}`)
   return (

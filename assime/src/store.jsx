@@ -11,6 +11,14 @@ const nouvelId = () => 'l' + Date.now().toString(36) + Math.random().toString(36
 const LISTE_VIDE = () => [{ id: nouvelId(), nom: 'Ma liste', budget: 0, items: [] }]
 const aFaire = ms => ms.map(m => ({ ...m, fait: false, detail: m.detail === 'Fait' ? 'Enregistre un trajet de bout en bout' : m.detail }))
 
+// Erreur technique : détail dans la console seulement, message simple à l'écran
+const ECHEC = "Ça n'a pas marché, réessaie"
+const signaler = e => { console.error('[Assimé]', e); return ECHEC }
+
+// Restes de l'ancienne version (exemples mis d'office) : ils ne doivent pas apparaître hors Mode démo
+const NOMS_DEMO = LISTE_DEMO.map(i => i.nom).join('|')
+const estListeExemple = l => l.id !== 'demo' && ((l.id === 'l1' && l.nom === 'Marché de samedi') || (l.items || []).map(i => i.nom).join('|') === NOMS_DEMO)
+
 // Position de démonstration quand le GPS ne répond pas
 const POSITION_SIMULEE = offset(MARCHE, -10, 5)
 
@@ -208,6 +216,21 @@ export function AppProvider({ children }) {
 
   const boutique = id => boutiques.find(b => b.id === id)
 
+  // 0. Au démarrage : on retire la liste, les favoris et les raccourcis d'exemple d'une ancienne version
+  useEffect(() => {
+    setListes(ls => {
+      const reste = ls.filter(l => !estListeExemple(l))
+      if (reste.length === ls.length) return ls
+      const nettes = reste.length ? reste : LISTE_VIDE()
+      setListeId(nettes[0].id)
+      return nettes
+    })
+    setFavoris(f => (f.length === 1 && f[0] === 'b1' ? [] : f))
+    setRaccourcis(r => (r.join('|') === 'Pagnes|Chaussures|Épices' ? [] : r))
+    setMissions(ms => (ms.some(m => m.detail === 'Fait') ? aFaire(ms) : ms))
+    setMaBoutiqueId(id => (id === 'b1' && !compteLocal ? null : id))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // 1. Au démarrage : identité anonyme, boutiques et coups de cœur partagés
   useEffect(() => {
     if (!supabase) return
@@ -227,7 +250,7 @@ export function AppProvider({ children }) {
         setCoeursServeur(cs); setMesVotes(cs.votes)
         setServeur({ etat: 'synchro', uid, anonyme: s ? s.anonyme : true, erreur: null, envoi: false })
       } catch (e) {
-        if (!fini) setServeur({ etat: 'erreur', uid: null, erreur: e.message || String(e), envoi: false })
+        if (!fini) setServeur({ etat: 'erreur', uid: null, erreur: signaler(e), envoi: false })
       }
     })()
     // Connexion / déconnexion (y compris par le lien reçu par e-mail) : on suit la session
@@ -239,22 +262,23 @@ export function AppProvider({ children }) {
     return () => { fini = true; abo.subscription.unsubscribe() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Remise à zéro de tout ce qui appartient au compte (les boutiques du marché restent) */
-  const reinitialiser = () => {
-    const l = LISTE_VIDE()
+  /** Remise à zéro de tout ce qui appartient au compte (les boutiques du marché restent).
+   *  Appelée pour un nouveau compte, un autre compte et la déconnexion. */
+  const reinitialiserDonneesPerso = () => {
+    const l = LISTE_VIDE() // une « Ma liste » vide, budget 0
     setUser(null); setListes(l); setListeId(l[0].id); setFavoris([]); setHistorique([]); setInterets({}); setActivites([])
     setMissions(aFaire(MISSIONS)); setMissionsVendeur(aFaire(MISSIONS_VENDEUR)); setRaccourcis([]); setNotes({}); setArrets([])
     trajetRef.current = []; setTrajet([]); setMoto(null); setMaBoutiqueId(null); setMesVotes({})
   }
   /** Après une connexion réussie : si c'est un autre compte que celui du téléphone, on part de zéro */
   const ouvrirSession = (uid, infos) => {
-    if (compteLocal !== uid) { reinitialiser(); setCompteLocal(uid) }
+    if (compteLocal !== uid) { reinitialiserDonneesPerso(); setCompteLocal(uid) }
     setUser({ prenom: '', tel: '', role: 'acheteur', ...infos, verifie: true })
     setServeur(sv => ({ ...sv, uid, anonyme: false }))
   }
   const seDeconnecter = async () => {
     await deconnecter()
-    reinitialiser(); setCompteLocal(null); setCompteCharge(null)
+    reinitialiserDonneesPerso(); setCompteLocal(null); setCompteCharge(null)
     setServeur(sv => ({ ...sv, uid: null, anonyme: true }))
   }
   const continuerSansCompte = () => {
@@ -268,7 +292,7 @@ export function AppProvider({ children }) {
     let fini = false
     chargerCompte(uid).then(c => {
       if (fini) return
-      if (compteLocal !== uid) { reinitialiser(); setCompteLocal(uid) } // ex. connexion par le lien de l'e-mail
+      if (compteLocal !== uid) { reinitialiserDonneesPerso(); setCompteLocal(uid) } // ex. connexion par le lien de l'e-mail
       const p = c.profil
       setUser(u => ({
         ...(u || {}), prenom: p?.prenom || u?.prenom || c.meta.prenom || '', tel: p?.telephone || u?.tel || '',
@@ -278,7 +302,7 @@ export function AppProvider({ children }) {
       if (c.listes.length) { setListes(c.listes); setListeId(c.listes[0].id) }
       if (c.boutique) setMaBoutiqueId(c.boutique)
       setCompteCharge(uid)
-    }).catch(e => { if (!fini) setServeur(sv => ({ ...sv, erreur: e.message || String(e) })) })
+    }).catch(e => { if (!fini) setServeur(sv => ({ ...sv, erreur: signaler(e) })) })
     return () => { fini = true }
   }, [serveur.etat, serveur.uid, serveur.anonyme, compteCharge]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -290,7 +314,7 @@ export function AppProvider({ children }) {
     if (listesEnvoyees.current === signature) return
     const minuteur = setTimeout(() => {
       enregistrerListes(listes, serveur.uid).then(() => { listesEnvoyees.current = signature })
-        .catch(e => setServeur(sv => ({ ...sv, erreur: e.message || String(e) })))
+        .catch(e => setServeur(sv => ({ ...sv, erreur: signaler(e) })))
     }, 1000)
     return () => clearTimeout(minuteur)
   }, [listes, serveur.uid, compteCharge])
@@ -319,14 +343,14 @@ export function AppProvider({ children }) {
     const signature = JSON.stringify(versLigne(b))
     if (dernierEnvoi.current[b.id] === signature) return
     const minuteur = setTimeout(async () => {
-      setServeur(s => ({ ...s, envoi: true }))
+      setServeur(s => ({ ...s, envoi: true, message: null }))
       try {
         const enregistree = await enregistrerBoutique(b, serveur.uid)
         dernierEnvoi.current[enregistree.id] = JSON.stringify(versLigne(enregistree))
         setBoutiques(bs => bs.map(x => (x.id === enregistree.id ? enregistree : x)))
-        setServeur(s => ({ ...s, envoi: false, erreur: null }))
+        setServeur(s => ({ ...s, envoi: false, erreur: null, message: 'Boutique enregistrée' }))
       } catch (e) {
-        setServeur(s => ({ ...s, envoi: false, erreur: e.message || String(e) }))
+        setServeur(s => ({ ...s, envoi: false, erreur: signaler(e), message: null }))
       }
     }, 800)
     return () => clearTimeout(minuteur)
@@ -339,7 +363,7 @@ export function AppProvider({ children }) {
   const points = missions.filter(m => m.fait).reduce((s, m) => s + m.points, 0)
 
   const value = {
-    user, setUser, langue, setLangue, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge,
+    user, setUser, langue, setLangue, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
     boutiques, setBoutiques, boutique, maBoutiqueId, setMaBoutiqueId,
     coeursDe, voter, mesVotes, serveur, interets, noterInteret, activites, setActivites,
     liste, setListe, budget, setBudget, favoris, setFavoris,

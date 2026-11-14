@@ -1,5 +1,14 @@
 # Journal des versions
 
+## 1.5.1 — 14 novembre 2026
+
+### Finitions
+- Plus aucun message technique à l'écran (JSON, codes d'erreur, « OK ») : « Boutique enregistrée », « Ça n'a pas marché, réessaie ». Les détails vont dans la console.
+- Profil : « Discuter avec l'IA » ouvre l'assistant. La page de diagnostic `/test-ia` reste accessible par son adresse seulement.
+- Étiquettes « ✦ IA Assimé » et « Mode hors ligne » ; plus d'étiquettes d'outils sous les réponses.
+- Une seule fonction `reinitialiserDonneesPerso()` pour un nouveau compte, un autre compte et la déconnexion.
+- Au démarrage, la liste, les favoris et les raccourcis d'exemple d'une ancienne version sont retirés (hors Mode démo).
+
 ## 1.5.0 — 14 novembre 2026
 
 ### Vrais comptes

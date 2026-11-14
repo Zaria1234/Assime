@@ -52,7 +52,8 @@ export function identite() {
 export async function connexionTelephone({ telephone, prenom, role, code }) {
   const r = await fetch('/api/compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telephone, prenom, role, code }) })
   const json = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(json.erreur || 'Connexion impossible (' + r.status + ')')
+  // Message simple pour l'écran (numéro inconnu, code faux) ; le détail technique reste dans l'erreur
+  if (!r.ok) throw Object.assign(new Error((json.erreur || 'Erreur') + ' ' + (json.detail || '') + ' (' + r.status + ')'), { simple: r.status < 500 ? json.erreur : null })
   enCours = null
   const { data, error } = await supabase.auth.verifyOtp({ token_hash: json.token_hash, type: 'magiclink' })
   if (error) throw error

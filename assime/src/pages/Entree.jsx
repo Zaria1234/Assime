@@ -5,6 +5,15 @@ import { useApp } from '../store'
 import { Screen, TopBar, Icon, I } from '../components/ui'
 import { supabase, connexionTelephone, envoyerCodeEmail, verifierCodeEmail } from '../lib/supabase'
 
+/** Message affiché à l'écran ; le détail technique part dans la console */
+function messageSimple(err) {
+  console.error('[Assimé] connexion', err)
+  if (err?.simple) return err.simple
+  if (/expired|invalid|token/i.test(err?.message || '')) return 'Code incorrect ou expiré.'
+  if (/rate|limit|seconds/i.test(err?.message || '')) return 'Trop de demandes. Attends une minute et réessaie.'
+  return "Ça n'a pas marché, réessaie."
+}
+
 const LANGUES = [{ id: 'ewe', nom: 'Éwé' }, { id: 'mina', nom: 'Mina' }, { id: 'fr', nom: 'Français' }]
 
 export function Bienvenue() {
@@ -102,7 +111,7 @@ function ChampContact({ canal, tel, setTel, email, setEmail }) {
 
 export function Inscription() {
   const nav = useNavigate()
-  const { setUser } = useApp()
+  const { setUser, reinitialiserDonneesPerso } = useApp()
   const [canal, setCanal] = useState('tel')
   const [prenom, setPrenom] = useState('')
   const [tel, setTel] = useState('')
@@ -117,13 +126,14 @@ export function Inscription() {
     e.preventDefault()
     if (!valide) return
     const infos = { prenom: prenom.trim(), role }
-    if (!supabase) { // mode local : tout reste sur le téléphone
+    if (!supabase) { // mode local : tout reste sur le téléphone, un nouveau compte part de zéro
+      reinitialiserDonneesPerso()
       setUser({ ...infos, tel, verifie: false })
       return nav('/code', { state: { canal: 'local', suite: role === 'vendeur' ? '/vendeur' : '/carte' } })
     }
     if (canal === 'email') {
       setAttente(true); setErreur('')
-      try { await envoyerCodeEmail(email.trim(), infos) } catch (err) { setAttente(false); return setErreur(err.message || 'Envoi impossible') }
+      try { await envoyerCodeEmail(email.trim(), infos) } catch (err) { setAttente(false); return setErreur(messageSimple(err)) }
       return nav('/code', { state: { canal: 'email', email: email.trim(), ...infos } })
     }
     nav('/code', { state: { canal: 'tel', telephone: tel, ...infos } })
@@ -180,7 +190,7 @@ export function Connexion() {
     }
     if (canal === 'email') {
       setAttente(true); setErreur('')
-      try { await envoyerCodeEmail(email.trim()) } catch (err) { setAttente(false); return setErreur(err.message || 'Envoi impossible') }
+      try { await envoyerCodeEmail(email.trim()) } catch (err) { setAttente(false); return setErreur(messageSimple(err)) }
       return nav('/code', { state: { canal: 'email', email: email.trim() } })
     }
     nav('/code', { state: { canal: 'tel', telephone: tel } })
@@ -234,7 +244,7 @@ export function Code() {
       nav(prenom ? suite(role) : '/role', { replace: true })
     } catch (err) {
       setAttente(false)
-      setErreur(/expired|invalid/i.test(err.message || '') ? 'Code incorrect ou expiré.' : err.message || 'Connexion impossible')
+      setErreur(messageSimple(err))
     }
   }
   const masque = canal === 'email' ? state?.email

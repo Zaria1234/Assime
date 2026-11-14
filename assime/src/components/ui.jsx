@@ -141,9 +141,9 @@ export function VoteCoeur({ boutiqueId, compact = false }) {
 export function EtatServeur() {
   const { serveur } = useApp()
   const etats = {
-    local: ['#6E7280', 'Données sur ce téléphone', 'Base partagée non configurée (voir docs/BACKEND.md)'],
+    local: ['#6E7280', 'Données sur ce téléphone', 'Tout reste sur ce téléphone'],
     connexion: ['#A86A00', 'Connexion à la base…', 'Un instant'],
-    synchro: ['#137A52', serveur.envoi ? 'Envoi en cours…' : 'Synchronisé en ligne', 'Boutiques, photos et coups de cœur partagés'],
+    synchro: ['#137A52', serveur.envoi ? 'Envoi en cours…' : serveur.message || 'Synchronisé en ligne', 'Boutiques, photos et coups de cœur partagés'],
     erreur: ['#B42318', 'Hors ligne', "La base ne répond pas : l'app continue sur le téléphone"],
   }
   const [couleur, titre, detail] = etats[serveur.etat] || etats.local
@@ -152,7 +152,7 @@ export function EtatServeur() {
       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: couleur }} />
       <span className="flex-1 min-w-0">
         <b className="block text-sm">{titre}</b>
-        <span className="block text-xs text-muted truncate">{serveur.erreur && serveur.etat === 'synchro' ? 'Dernier envoi refusé : ' + serveur.erreur : detail}</span>
+        <span className="block text-xs text-muted truncate">{serveur.erreur && serveur.etat === 'synchro' ? serveur.erreur : detail}</span>
       </span>
     </div>
   )

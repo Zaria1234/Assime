@@ -7,7 +7,7 @@ import { Screen, BackButton, MicIcon } from '../components/ui'
 import { Wax, Coeurs, GlassIcon } from '../components/art'
 import { LIEUX_UTILES } from '../data/demo'
 import { chercherSurCarte } from '../lib/carte'
-import { rechercher, assistantListe, categoriesDe, demanderIA, appliquerOperations, phraseBudget, NOMS_OUTILS } from '../lib/ia'
+import { rechercher, assistantListe, categoriesDe, demanderIA, appliquerOperations, phraseBudget } from '../lib/ia'
 import { ecouter, microDisponible } from '../lib/voix'
 import { fmtDist, distance } from '../lib/geo'
 
@@ -74,7 +74,7 @@ export default function IA() {
     if (!phrase?.trim()) return
     setMessages(m => [...m, { de: 'moi', texte: phrase }])
     setPhase('reflexion')
-    // 1. Vraie IA (Gemini). 2. Si pas de réseau ou pas de clé : IA locale.
+    // 1. IA en ligne. 2. Si pas de réseau ou pas de clé : IA locale (« Mode hors ligne »).
     // « Si je prends… » reste calculé en local : c'est un calcul exact sur la liste.
     const ia = /si je prends/i.test(phrase) ? null
       : await demanderIA({ message: phrase, boutiques, lieux: LIEUX_UTILES, position: moi, liste, budget, moto, coeursDe, historique: messages })
@@ -91,9 +91,9 @@ export default function IA() {
         : ia.action === 'voir_liste' || ia.operations.length ? { to: '/liste', label: 'Voir ma liste' } : null
       const lieux = (ia.lieux || []).map(id => LIEUX_UTILES.find(l => l.id === id)).filter(Boolean).map(l => ({ ...l, distance: moi ? distance(moi, l.pos) : null }))
       const externes = (ia.lieux_lome || []).map(x => ({ ...x, distance: moi ? distance(moi, x.pos) : null }))
-      rep = { texte, boutiques: choisies, lieux, externes, lien, source: 'Gemini', outils: ia.outils || [], sources: ia.sources || [] }
+      rep = { texte, boutiques: choisies, lieux, externes, lien, source: 'en ligne', sources: ia.sources || [] }
     } else {
-      rep = { ...(await completerAvecCarte(repondre(phrase))), source: 'IA locale' }
+      rep = { ...(await completerAvecCarte(repondre(phrase))), source: 'hors ligne' }
     }
     setMessages(m => [...m, { de: 'ia', ...rep }])
     setPhase('parle')
@@ -135,8 +135,7 @@ export default function IA() {
               <div className="bg-white border border-line rounded-[20px] rounded-bl-md px-4 py-3 text-[15px] leading-relaxed">{m.texte}</div>
               {m.source && (
                 <div className="-mt-1.5 flex flex-wrap gap-1.5">
-                  <span className={'text-[10px] font-semibold px-2 py-0.5 rounded-full ' + (m.source === 'Gemini' ? 'bg-[#E6F4EC] text-[#137A52]' : 'bg-white border border-line text-muted')}>{m.source === 'Gemini' ? '✦ Gemini' : 'IA locale (hors ligne)'}</span>
-                  {(m.outils || []).map(o => <span key={o} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white border border-line text-muted">{NOMS_OUTILS[o] || o}</span>)}
+                  <span className={'text-[10px] font-semibold px-2 py-0.5 rounded-full ' + (m.source === 'en ligne' ? 'bg-[#E6F4EC] text-[#137A52]' : 'bg-white border border-line text-muted')}>{m.source === 'en ligne' ? '✦ IA Assimé' : 'Mode hors ligne'}</span>
                 </div>
               )}
               {m.sources?.length > 0 && (

@@ -145,7 +145,7 @@ export function Liste() {
           className="mx-5 mb-2 p-2.5 rounded-[18px] bg-white border border-line flex gap-2">
           <label htmlFor="nomListe" className="sr-only">Nom de la liste</label>
           <input id="nomListe" autoFocus className="field h-11 flex-1 min-w-0" placeholder="Ex. : Fête de dimanche" value={nomListe} onChange={e => setNomListe(e.target.value)} />
-          <button type="submit" className="btn btn-main no-arrow h-11 px-4 text-sm">{renomme ? 'OK' : 'Créer'}</button>
+          <button type="submit" className="btn btn-main no-arrow h-11 px-4 text-sm">{renomme ? 'Valider' : 'Créer'}</button>
         </form>
       )}
       <div className="mx-5 rounded-[22px] bg-yellow px-3 py-3 flex items-center gap-3 shadow-[0_14px_26px_-18px_rgba(168,106,0,.9)]">
@@ -222,7 +222,7 @@ export function Assistant() {
     if (!phrase.trim()) return
     setTexte('')
     setMessages(m => [...m, { de: 'moi', texte: phrase }])
-    // Gemini d'abord ; IA locale si pas de réseau. « Si je prends… » reste un calcul local exact.
+    // IA en ligne d'abord ; IA locale si pas de réseau. « Si je prends… » reste un calcul local exact.
     const ia = /si je prends/i.test(phrase) ? null : await demanderIA({ message: phrase, boutiques, lieux: LIEUX_UTILES, position: moi, liste, budget, coeursDe, historique: messages })
     let texteIA, boutique, nouvelle
     if (ia) {
@@ -234,12 +234,12 @@ export function Assistant() {
       nouvelle = r.liste; texteIA = r.reponse; boutique = r.boutique
     }
     setListe(nouvelle)
-    setMessages(m => [...m, { de: 'ia', texte: texteIA, boutique, source: ia ? 'Gemini' : 'IA locale' }])
+    setMessages(m => [...m, { de: 'ia', texte: texteIA, boutique, source: ia ? 'en ligne' : 'hors ligne' }])
     dire(texteIA)
   }
   const micro = async () => {
     setEcoute(true)
-    try { traiter(await ecouter()) } catch (e) { setMessages(m => [...m, { de: 'ia', texte: 'Micro indisponible (' + e.message + '). Écris ta phrase.' }]) } finally { setEcoute(false) }
+    try { traiter(await ecouter()) } catch (e) { console.error('[Assimé] micro', e); setMessages(m => [...m, { de: 'ia', texte: 'Micro indisponible. Écris ta phrase.' }]) } finally { setEcoute(false) }
   }
   return (
     <Screen>
@@ -250,7 +250,7 @@ export function Assistant() {
           : (
             <div key={i} className="self-start max-w-[310px] card rounded-bl-sm px-3.5 py-3 text-[15px] leading-snug">
               {m.texte}
-              {m.source && <span className={'block w-fit mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ' + (m.source === 'Gemini' ? 'bg-[#E6F4EC] text-[#137A52]' : 'bg-[#F4F4F7] text-muted')}>{m.source === 'Gemini' ? '✦ Gemini' : 'IA locale (hors ligne)'}</span>}
+              {m.source && <span className={'block w-fit mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ' + (m.source === 'en ligne' ? 'bg-[#E6F4EC] text-[#137A52]' : 'bg-[#F4F4F7] text-muted')}>{m.source === 'en ligne' ? '✦ IA Assimé' : 'Mode hors ligne'}</span>}
               {m.boutique && (
                 <div className="mt-2.5 flex gap-2">
                   <button type="button" onClick={() => nav('/guidage/' + m.boutique.id)} className="btn btn-main h-10 text-[13px]">Aller à {m.boutique.categorie.toLowerCase()}</button>
@@ -362,9 +362,9 @@ export function Profil() {
             <Wax image={b.couverture} className="w-12 h-12 rounded-[14px] shrink-0" /><span className="flex-1"><b className="block text-sm">{b.nom}</b><span className="text-xs text-muted">{b.categorie}</span></span>
           </Link>
         ))}
-        <Link to="/test-ia" className="card px-4 py-3.5 flex items-center gap-3 no-underline text-ink">
+        <Link to="/ia" className="card px-4 py-3.5 flex items-center gap-3 no-underline text-ink">
           <span className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center text-[15px]">✦</span>
-          <span className="flex-1"><b className="block text-sm">Tester l'IA (Gemini)</b><span className="text-xs text-muted">Vérifie que la clé marche</span></span>
+          <span className="flex-1"><b className="block text-sm">Discuter avec l'IA</b><span className="text-xs text-muted">Pose ta question à voix haute ou par écrit</span></span>
           <Icon d={I.chevron} size={18} />
         </Link>
         <div className="section-title">Réglages</div>
