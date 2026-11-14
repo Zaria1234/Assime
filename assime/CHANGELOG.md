@@ -1,5 +1,12 @@
 # Journal des versions
 
+## 1.4.1 — 14 novembre 2026
+
+### IA plus fiable
+- Si le modèle Gemini principal est surchargé (503/429), absent (404) ou ne répond pas en 8 s, l'agent bascule tout seul sur `gemini-flash-lite-latest`.
+- Chaque appel à Gemini a un délai maximum (Vercel coupe la fonction à 30 s).
+- Carte des rues OpenStreetMap générée (`public/data/reseau-marche.json`).
+
 ## 1.4.0 — 14 novembre 2026
 
 ### Back-end Supabase

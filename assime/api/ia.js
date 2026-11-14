@@ -5,6 +5,7 @@
 import { DECLARATIONS, executer } from './_outils.js'
 
 const MODELE_DEFAUT = 'gemini-flash-latest' // alias Google qui suit le dernier modèle Flash
+const MODELE_SECOURS = 'gemini-flash-lite-latest' // utilisé si le modèle principal est surchargé (503/429) ou absent (404)
 const ETAPES_MAX = 6 // nombre maximum d'allers-retours avec les outils
 
 const CONSIGNES = `Tu es l'assistant vocal d'Assimé, l'application qui guide les gens au Grand Marché d'Asigamé à Lomé (Togo).
@@ -28,14 +29,27 @@ Méthode :
    - « Ramène-moi à ma moto » → action "retour_moto" si moto = true, sinon explique qu'il faut d'abord enregistrer le trajet.
 4. Si rien ne correspond, dis-le simplement et propose une autre piste.`
 
+/** Appel à Gemini, avec bascule sur le modèle de secours si le principal est indisponible */
+async function gemini(ctx, corps) {
+  try {
+    return await appelGemini(ctx.cle, ctx.modele, corps, 8000)
+  } catch (e) {
+    if (![404, 429, 500, 503, 504].includes(e.statut) || ctx.modele === MODELE_SECOURS) throw e
+    ctx.modele = MODELE_SECOURS // les étapes suivantes restent sur le secours
+    return appelGemini(ctx.cle, ctx.modele, corps)
+  }
+}
+
 /** Appel brut à Gemini */
-async function gemini(cle, modele, corps) {
+async function appelGemini(cle, modele, corps, delai = 15000) {
+  // Délai maximum : un modèle surchargé peut ne jamais répondre (Vercel coupe à 30 s)
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cle },
     body: JSON.stringify(corps),
-  })
-  if (!r.ok) throw Object.assign(new Error('Gemini a répondu ' + r.status), { statut: r.status, detail: (await r.text()).slice(0, 300) })
+    signal: AbortSignal.timeout(delai),
+  }).catch(e => { throw Object.assign(new Error('Gemini trop lent (' + modele + ')'), { statut: e.name === 'TimeoutError' ? 504 : 502 }) })
+  if (!r.ok) throw Object.assign(new Error('Gemini a répondu ' + r.status), { statut: r.status, detail: (await r.text().catch(() => '')).slice(0, 300) })
   return r.json()
 }
 
@@ -73,7 +87,7 @@ export async function repondreIA(corps, env = process.env) {
   try {
     for (let etape = 0; etape < ETAPES_MAX && !finale; etape++) {
       const derniere = etape === ETAPES_MAX - 1
-      const data = await gemini(cle, modele, {
+      const data = await gemini(ctx, {
         systemInstruction: { parts: [{ text: CONSIGNES }] },
         contents,
         tools: [{ functionDeclarations: DECLARATIONS }],
@@ -119,7 +133,7 @@ export async function repondreIA(corps, env = process.env) {
       action: ['retour_moto', 'voir_liste'].includes(finale.action) ? finale.action : 'aucune',
       outils: [...new Set(outilsUtilises)],
       sources: ctx.memo.sources.slice(0, 3),
-      modele,
+      modele: ctx.modele,
     },
   }
 }
