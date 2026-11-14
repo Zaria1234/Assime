@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-preview
+.DS_Store
+.env
+.env.local
+.env.*.local
+*.log
+.vercel

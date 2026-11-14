@@ -1,0 +1,11 @@
+{
+  "name": "Assimé",
+  "short_name": "Assimé",
+  "description": "Retrouve ta moto, trouve une boutique et laisse-toi guider au marché d'Asigamé.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#176B52",
+  "lang": "fr",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
