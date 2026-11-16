@@ -2,7 +2,7 @@
 import {
   DressIcon, PepperIcon, TShirtIcon, SneakerIcon, SparkleIcon, DiamondIcon, HandbagIcon, CookingPotIcon,
   BagIcon, StorefrontIcon, HeartIcon, ChurchIcon, BankIcon, BooksIcon, PillIcon, MotorcycleIcon, ToiletIcon,
-  DeviceMobileIcon, DropIcon, BuildingsIcon, MapPinIcon, ThumbsUpIcon, BowlFoodIcon, HairDryerIcon, MaskHappyIcon, NeedleIcon, WarehouseIcon, MagicWandIcon,
+  DeviceMobileIcon, DropIcon, BuildingsIcon, MapPinIcon, ThumbsUpIcon, BowlFoodIcon, HairDryerIcon, MaskHappyIcon, NeedleIcon, WarehouseIcon, MagicWandIcon, MicrophoneIcon, ListChecksIcon,
 } from '@phosphor-icons/react'
 
 export const ICONES = {
@@ -11,6 +11,7 @@ export const ICONES = {
   Tout: StorefrontIcon, Favoris: HeartIcon, Église: ChurchIcon, Banque: BankIcon, Librairie: BooksIcon, Pharmacie: PillIcon,
   Parking: MotorcycleIcon, Toilettes: ToiletIcon, 'Mobile money': DeviceMobileIcon, Eau: DropIcon, Section: BuildingsIcon,
   Hôtel: BuildingsIcon, Lieu: MapPinIcon,
+  Micro: MicrophoneIcon, Liste: ListChecksIcon, // illustrations de la découverte
 }
 
 // Palette vive, utilisée à des endroits précis : [fond pastel, teinte foncée de l'icône]
@@ -27,7 +28,7 @@ const TEINTE_DE = {
   'Pagnes wax': 'lilas', Tissus: 'rose', Alimentation: 'menthe', 'Mèches et coiffure': 'rose', Artisanat: 'soleil', 'Tourisme et souvenirs': 'soleil', 'Alimentation générale': 'menthe', Grossistes: 'ciel', 'Pour toi': 'menthe', Épices: 'peche', Friperie: 'ciel', Chaussures: 'soleil', Cosmétiques: 'rose',
   'Perles et bijoux': 'menthe', Sacs: 'peche', Vaisselle: 'ciel', Autre: 'lilas', Tout: 'lilas', Favoris: 'rose',
   Église: 'lilas', Banque: 'ciel', Librairie: 'soleil', Pharmacie: 'menthe', Parking: 'peche', Toilettes: 'ciel',
-  'Mobile money': 'soleil', Eau: 'ciel', Section: 'menthe', Hôtel: 'lilas', Lieu: 'peche',
+  'Mobile money': 'soleil', Eau: 'ciel', Section: 'menthe', Hôtel: 'lilas', Lieu: 'peche', Micro: 'menthe', Liste: 'ciel',
 }
 export const teinte = cat => TEINTES[TEINTE_DE[cat] || 'lilas']
 

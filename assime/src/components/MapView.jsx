@@ -1,4 +1,4 @@
-// Carte Leaflet : vue satellite (Esri) ou plan (OpenStreetMap)
+// Carte Leaflet : plan (OpenStreetMap) par défaut, ou vue satellite (Esri)
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { createRoot } from 'react-dom/client'
@@ -59,19 +59,34 @@ function largeurNom(nom, gras) {
   return Math.min(132, toile.measureText(nom).width + 8)
 }
 const seTouchent = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
-/** items : [{ mk, t (diamètre), nom, prio, fixe }]. Un nom est masqué s'il recouvre un rond ou un nom plus important.
- *  Les noms « fixes » (sélection, Ma moto) restent toujours visibles. */
+/** items : [{ mk, t (diamètre), nom, prio, fixe, coeurs }]. Chaque nom essaie plusieurs places autour de son rond
+ *  (dessous, à droite, à gauche, dessus) et prend la première qui ne recouvre ni un rond, ni un badge, ni un nom
+ *  plus important ; s'il n'y en a aucune, il est masqué. Les noms « fixes » (sélection, Ma moto) restent dessous. */
 function arrangerNoms(m, items) {
   const places = items.map(it => {
-    const pt = m.latLngToLayerPoint(it.mk.getLatLng())
-    const w = it.nom ? largeurNom(it.nom, it.fixe) : 0
-    return { ...it, rond: { x: pt.x - it.t / 2, y: pt.y - it.t / 2, w: it.t, h: it.t }, boite: { x: pt.x - w / 2, y: pt.y + it.t / 2 + 1, w, h: it.fixe ? 16 : 15 } }
+    const pt = m.latLngToLayerPoint(it.mk.getLatLng()), r = it.t / 2
+    const obstacles = [{ x: pt.x - r, y: pt.y - r, w: it.t, h: it.t }]
+    if (it.coeurs > 0) obstacles.push({ x: pt.x + r - 12, y: pt.y - r - 7, w: 34, h: 16 })
+    return { ...it, pt, r, obstacles, w: it.nom ? largeurNom(it.nom, it.fixe) : 0 }
   })
   const gardes = []
   places.filter(p => p.nom).sort((a, b) => b.prio - a.prio).forEach(p => {
-    const gene = !p.fixe && (places.some(q => q !== p && seTouchent(p.boite, q.rond)) || gardes.some(b => seTouchent(p.boite, b)))
-    p.mk.getElement()?.querySelector('.map-nom')?.classList.toggle('masque', gene)
-    if (!gene) gardes.push(p.boite)
+    const el = p.mk.getElement()?.querySelector('.map-nom')
+    const { pt, r, w } = p, h = p.fixe ? 16 : 15
+    // [boîte sur la carte, position CSS dans le marqueur]
+    const essais = [
+      [{ x: pt.x - w / 2, y: pt.y + r + 1, w, h }, { left: '50%', right: 'auto', top: p.t + 1 + 'px', transform: 'translateX(-50%)' }],
+      [{ x: pt.x + r + 3, y: pt.y - h / 2, w, h }, { left: p.t + 3 + 'px', right: 'auto', top: r - h / 2 + 'px', transform: 'none' }],
+      [{ x: pt.x - r - 3 - w, y: pt.y - h / 2, w, h }, { left: 'auto', right: p.t + 3 + 'px', top: r - h / 2 + 'px', transform: 'none' }],
+      [{ x: pt.x - w / 2, y: pt.y - r - 1 - h, w, h }, { left: '50%', right: 'auto', top: -h - 1 + 'px', transform: 'translateX(-50%)' }],
+    ]
+    const libre = b => !places.some(q => q.obstacles.some((o, k) => !(q === p && k === 0) && seTouchent(b, o))) && !gardes.some(g => seTouchent(b, g))
+    const choix = p.fixe ? essais[0] : essais.find(([b]) => libre(b))
+    if (el) {
+      el.classList.toggle('masque', !choix)
+      if (choix) Object.assign(el.style, choix[1])
+    }
+    if (choix) gardes.push(choix[0])
   })
 }
 
@@ -83,7 +98,7 @@ export default function MapView({
   const map = useRef(null)
   const layers = useRef({})
   const etiquettes = useRef([])
-  const [mode, setMode] = useState('sat')
+  const [mode, setMode] = useState('plan')
   const [credits, setCredits] = useState(false)
 
   // Création de la carte
@@ -100,7 +115,7 @@ export default function MapView({
     setTimeout(() => { if (!chargee) el.current?.classList.add('offline') }, 4000)
     layers.current.sat.on('tileerror', panne)
     layers.current.plan.on('tileerror', panne)
-    layers.current.sat.addTo(m)
+    layers.current.plan.addTo(m) // la carte s'ouvre en mode Plan
     layers.current.overlay = L.layerGroup().addTo(m)
     // Les noms des lieux apparaissent à partir du zoom 18
     const noms = () => { el.current?.classList.toggle('zoom-noms', m.getZoom() >= 18); arrangerNoms(m, etiquettes.current) }
@@ -144,7 +159,7 @@ export default function MapView({
     boutiques.forEach(b => {
       const grand = selection != null && b.id === selection
       const mk = L.marker(b.pos, { icon: rond({ cat: b.categorie || 'Tout', nom: b.nom, coeurs: b.coeurs, grand }), zIndexOffset: grand ? 800 : 100, title: b.nom }).addTo(g)
-      items.push({ mk, t: grand ? 44 : 32, nom: b.nom, prio: grand ? 1000 : 10 + (b.coeurs || 0), fixe: grand })
+      items.push({ mk, t: grand ? 44 : 32, nom: b.nom, prio: grand ? 1000 : 10 + (b.coeurs || 0), fixe: grand, coeurs: b.coeurs })
       if (onBoutique) mk.on('click', () => onBoutique(b))
     })
     arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(echappe(a.nom), { direction: 'top', className: 'map-pill' }).addTo(g))

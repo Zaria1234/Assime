@@ -1,5 +1,13 @@
 # Journal des versions
 
+## 1.8.0 — 17 novembre 2026
+
+### Accueil, slides et carte
+- **Page d'accueil « Ne te perds plus à Asigamé. »** : retour au design d'origine, à l'identique (halos vert et orangé, carte illustrée, « Ma moto », « Boutique de pagnes · 2 min », bouton orange « Créer mon compte », « J'ai déjà un compte », « Continuer sans compte »). C'est la dernière étape après les 6 slides, qui gardent leur design sobre.
+- **Slides** : les icônes reviennent, dans des tuiles blanches `GlassIcon` aux couleurs des catégories (une à trois par slide).
+- **Carte en mode Plan par défaut** partout ; le bouton Satellite / Plan démarre sur « Plan ».
+- **Plus de noms visibles sur la carte** : un nom qui gêne essaie de se placer à droite, à gauche ou au-dessus de son rond avant d'être masqué.
+
 ## 1.7.1 — 17 novembre 2026
 
 ### Carte plus lisible
