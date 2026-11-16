@@ -10,12 +10,15 @@ import { Bienvenue, Inscription, Connexion, Code, Role } from './pages/Entree'
 import { Carte, Trajet, Retour, Recherche, Boutique, Guidage } from './pages/Navigation'
 import { Explorer, Liste, Assistant, Missions, Profil } from './pages/Autres'
 import IA from './pages/IA'
+import Decouverte, { decouverteVue } from './pages/Decouverte'
 import TestIA from './pages/TestIA'
 import { VendeurAccueil, VendeurBoutique, Articles } from './pages/Vendeur'
 
 function Accueil() {
   const { user } = useApp()
-  return user?.verifie ? <Navigate to={user.role === 'vendeur' ? '/vendeur' : '/carte'} replace /> : <Bienvenue />
+  if (user?.verifie) return <Navigate to={user.role === 'vendeur' ? '/vendeur' : '/carte'} replace />
+  // Première ouverture : les slides de découverte passent avant Bienvenue
+  return decouverteVue() ? <Bienvenue /> : <Navigate to="/decouverte" replace />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -24,6 +27,7 @@ createRoot(document.getElementById('root')).render(
       <Router>
         <Routes>
           <Route path="/" element={<Accueil />} />
+          <Route path="/decouverte" element={<Decouverte />} />
           <Route path="/bienvenue" element={<Bienvenue />} />
           <Route path="/inscription" element={<Inscription />} />
           <Route path="/connexion" element={<Connexion />} />

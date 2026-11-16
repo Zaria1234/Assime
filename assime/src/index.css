@@ -80,3 +80,12 @@ body { margin: 0; background: #E9E9EF; color: var(--color-ink); font-family: var
   background: #fff; border: 1px solid #ECECF1; box-shadow: 0 6px 14px -10px rgba(22,24,29,.35); }
 .tile-on { background: #16181D !important; border-color: #16181D; box-shadow: 0 8px 18px -8px rgba(22,24,29,.8); }
 .glass-tile { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: #F2F2F6; }
+
+/* Découverte : apparition douce des slides (fondu + glissement), coupée si l'utilisateur préfère moins d'animations */
+@keyframes dec-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.dec-in { animation: dec-in .5s cubic-bezier(.2,.7,.2,1) both; }
+.dec-piste { transition: transform .38s cubic-bezier(.2,.7,.2,1); }
+@media (prefers-reduced-motion: reduce) {
+  .dec-in { animation: none; }
+  .dec-piste { transition: none; }
+}

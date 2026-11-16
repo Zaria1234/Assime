@@ -1,5 +1,15 @@
 # Journal des versions
 
+## 1.6.0 — 16 novembre 2026
+
+### Écran de découverte
+- **6 slides à la première ouverture**, avant Bienvenue : le marché dans ta langue, retrouver sa moto, trouver la bonne boutique, parler à l'IA, la liste et le budget, l'espace vendeur.
+- On défile **au doigt** (swipe gauche/droite), avec « Suivant », le bouton retour, les points de progression ou les **flèches du clavier**. « Passer » en haut à droite ; sur la dernière slide, « Commencer » mène à Bienvenue.
+- Vu une fois, c'est mémorisé sur le téléphone (`assime_decouverte_vue`) : les slides ne reviennent plus au rechargement.
+- **Profil → « Découvrir Assimé »** pour les revoir à tout moment (on revient ensuite au Profil).
+- Illustrations dessinées dans le code (SVG + tuiles `GlassIcon`), sans image externe ; apparition en fondu + glissement, coupée avec `prefers-reduced-motion`.
+- Nouvelle route `/decouverte`, nouveau fichier `src/pages/Decouverte.jsx`.
+
 ## 1.5.1 — 14 novembre 2026
 
 ### Finitions
