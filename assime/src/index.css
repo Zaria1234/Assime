@@ -100,3 +100,4 @@ body { margin: 0; background: #E9E9EF; color: var(--color-ink); font-family: var
   text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 -1.5px 0 #fff, 0 1.5px 0 #fff, -1.5px 0 0 #fff, 1.5px 0 0 #fff, 0 0 3px #fff; }
 .zoom-noms .map-nom, .map-nom.toujours { display: block; }
 .map-nom.toujours { font-weight: 700; font-size: 12px; }
+.map-nom.masque { display: none !important; }

@@ -51,6 +51,30 @@ const meIcon = L.divIcon({
 // Ma moto : rond blanc avec l'icône moto, nom toujours visible
 const motoIcon = () => rond({ cat: 'Parking', nom: 'Ma moto', nomVisible: true })
 
+// ---------- Noms qui se chevauchent : on garde le plus important, on masque l'autre ----------
+let toile = null
+function largeurNom(nom, gras) {
+  toile = toile || document.createElement('canvas').getContext('2d')
+  toile.font = (gras ? '700 12px' : '600 11px') + ' Inter, sans-serif'
+  return Math.min(132, toile.measureText(nom).width + 8)
+}
+const seTouchent = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+/** items : [{ mk, t (diamètre), nom, prio, fixe }]. Un nom est masqué s'il recouvre un rond ou un nom plus important.
+ *  Les noms « fixes » (sélection, Ma moto) restent toujours visibles. */
+function arrangerNoms(m, items) {
+  const places = items.map(it => {
+    const pt = m.latLngToLayerPoint(it.mk.getLatLng())
+    const w = it.nom ? largeurNom(it.nom, it.fixe) : 0
+    return { ...it, rond: { x: pt.x - it.t / 2, y: pt.y - it.t / 2, w: it.t, h: it.t }, boite: { x: pt.x - w / 2, y: pt.y + it.t / 2 + 1, w, h: it.fixe ? 16 : 15 } }
+  })
+  const gardes = []
+  places.filter(p => p.nom).sort((a, b) => b.prio - a.prio).forEach(p => {
+    const gene = !p.fixe && (places.some(q => q !== p && seTouchent(p.boite, q.rond)) || gardes.some(b => seTouchent(p.boite, b)))
+    p.mk.getElement()?.querySelector('.map-nom')?.classList.toggle('masque', gene)
+    if (!gene) gardes.push(p.boite)
+  })
+}
+
 export default function MapView({
   center = MARCHE, zoom = 18, moi, moto, trajet = [], fantome = [], route = [],
   boutiques = [], lieux = [], arrets = [], selection, onBoutique, onClick, fit, className = '', showToggle = true, togglePos = 'right-3 bottom-6',
@@ -58,6 +82,7 @@ export default function MapView({
   const el = useRef(null)
   const map = useRef(null)
   const layers = useRef({})
+  const etiquettes = useRef([])
   const [mode, setMode] = useState('sat')
   const [credits, setCredits] = useState(false)
 
@@ -78,7 +103,7 @@ export default function MapView({
     layers.current.sat.addTo(m)
     layers.current.overlay = L.layerGroup().addTo(m)
     // Les noms des lieux apparaissent à partir du zoom 18
-    const noms = () => el.current?.classList.toggle('zoom-noms', m.getZoom() >= 18)
+    const noms = () => { el.current?.classList.toggle('zoom-noms', m.getZoom() >= 18); arrangerNoms(m, etiquettes.current) }
     m.on('zoomend', noms)
     noms()
     map.current = m
@@ -105,6 +130,7 @@ export default function MapView({
   useEffect(() => {
     const g = layers.current.overlay
     g.clearLayers()
+    const items = []
     if (fantome.length > 1) L.polyline(fantome, { color: '#5E6B65', weight: 3, dashArray: '6 8', opacity: .7 }).addTo(g)
     if (trajet.length > 1) { L.polyline(trajet, { color: '#FFFFFF', weight: 9 }).addTo(g); L.polyline(trajet, { color: '#176B52', weight: 5 }).addTo(g) }
     if (route.length > 1) {
@@ -112,16 +138,20 @@ export default function MapView({
     }
     lieux.forEach(l => {
       const grand = selection != null && l.id === selection
-      L.marker(l.pos, { icon: rond({ cat: l.type || 'Lieu', nom: l.nom, grand }), zIndexOffset: grand ? 800 : 0, title: l.nom }).addTo(g)
+      const mk = L.marker(l.pos, { icon: rond({ cat: l.type || 'Lieu', nom: l.nom, grand }), zIndexOffset: grand ? 800 : 0, title: l.nom }).addTo(g)
+      items.push({ mk, t: grand ? 44 : 32, nom: l.nom, prio: grand ? 1000 : 5, fixe: grand })
     })
     boutiques.forEach(b => {
       const grand = selection != null && b.id === selection
       const mk = L.marker(b.pos, { icon: rond({ cat: b.categorie || 'Tout', nom: b.nom, coeurs: b.coeurs, grand }), zIndexOffset: grand ? 800 : 100, title: b.nom }).addTo(g)
+      items.push({ mk, t: grand ? 44 : 32, nom: b.nom, prio: grand ? 1000 : 10 + (b.coeurs || 0), fixe: grand })
       if (onBoutique) mk.on('click', () => onBoutique(b))
     })
     arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(echappe(a.nom), { direction: 'top', className: 'map-pill' }).addTo(g))
-    if (moto) L.marker(moto, { icon: motoIcon(), zIndexOffset: 900, title: 'Ma moto' }).addTo(g)
-    if (moi) L.marker(moi, { icon: meIcon, interactive: false, zIndexOffset: 1000 }).addTo(g)
+    if (moto) items.push({ mk: L.marker(moto, { icon: motoIcon(), zIndexOffset: 900, title: 'Ma moto' }).addTo(g), t: 32, nom: 'Ma moto', prio: 900, fixe: true })
+    if (moi) items.push({ mk: L.marker(moi, { icon: meIcon, interactive: false, zIndexOffset: 1000 }).addTo(g), t: 20, nom: '', prio: 0 })
+    etiquettes.current = items
+    arrangerNoms(map.current, items)
   }, [moi, moto, trajet, fantome, route, boutiques, lieux, arrets, selection, onBoutique])
 
   // Cadrage

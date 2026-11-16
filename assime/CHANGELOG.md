@@ -1,5 +1,10 @@
 # Journal des versions
 
+## 1.7.1 — 17 novembre 2026
+
+### Carte plus lisible
+- Les noms qui se chevauchent sont masqués : on garde celui de la boutique qui a le plus de coups de cœur, et un nom ne recouvre plus jamais un autre rond. Le lieu sélectionné et « Ma moto » restent toujours nommés. Le tri est refait à chaque zoom.
+
 ## 1.7.0 — 17 novembre 2026
 
 ### Écran de découverte refait
