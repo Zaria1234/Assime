@@ -324,8 +324,8 @@ const numero = tel => { const d = String(tel || '').replace(/\D/g, ''); return d
 export function Profil() {
   const nav = useNavigate()
   const { user, setUser, langue, setLangue, historique, favoris, boutique, points, seDeconnecter } = useApp()
-  // Déconnexion : fin de la session, données du compte effacées du téléphone, retour à l'écran Bienvenue
-  const deconnexion = async () => { await seDeconnecter(); nav('/bienvenue', { replace: true }) }
+  // Déconnexion : fin de la session, données du compte effacées du téléphone, retour aux slides de découverte
+  const deconnexion = async () => { await seDeconnecter(); nav('/', { replace: true }) }
   return (
     <Screen nav>
       <div className="px-5 pt-5 pb-3.5 flex items-center gap-3.5">
@@ -369,7 +369,7 @@ export function Profil() {
         </Link>
         <Link to="/decouverte" state={{ retour: '/profil' }} className="card px-4 py-3.5 flex items-center gap-3 no-underline text-ink">
           <GlassIcon cat="Lieu" size={40} />
-          <span className="flex-1"><b className="block text-sm">Découvrir Assimé</b><span className="text-xs text-muted">Revoir la présentation en 6 écrans</span></span>
+          <span className="flex-1"><b className="block text-sm">Découvrir Assimé</b><span className="text-xs text-muted">Revoir la présentation de l'app</span></span>
           <Icon d={I.chevron} size={18} />
         </Link>
         <div className="section-title">Réglages</div>

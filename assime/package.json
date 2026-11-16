@@ -1,7 +1,7 @@
 {
   "name": "assime",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Assimé — application web de navigation au Grand Marché d'Asigamé (Lomé). Hackathon CREATE WITH AI 2026.",
   "type": "module",
   "engines": {

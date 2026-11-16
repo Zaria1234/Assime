@@ -427,7 +427,7 @@ export function Guidage() {
   const demarrer = () => { setDemarre(true); dire(titre + '. ' + sous) }
   return (
     <MapShell
-      map={<MapView className="absolute inset-0" moi={moi} boutiques={cible.categorie ? [cible] : []} lieux={cible.categorie ? [] : [cible]} togglePos="right-3 top-[124px]" arrets={arrets}
+      map={<MapView className="absolute inset-0" moi={moi} boutiques={cible.categorie ? [cible] : []} lieux={cible.categorie ? [] : [cible]} selection={cible.id} togglePos="right-3 top-[124px]" arrets={arrets}
         route={chemin ? chemin.points : moi ? [moi, cible.pos] : []} fit={chemin ? chemin.points : moi ? [moi, cible.pos] : [cible.pos]} />}
       top={<div className="flex gap-2 items-center"><BackButton /><div className="flex-1 min-w-0"><Banner titre={titre} sous={sous} icon={I.go} right={<SonBouton />} /></div></div>}
       bottom={

@@ -147,10 +147,13 @@ export async function enregistrerBoutique(b, uid) {
 
 // ---------- Coups de cœur ----------
 export async function chargerCoeurs() {
+  // Sans session (visiteur sans compte), « mes_coeurs » et « mes votes » sont interdits (401) : on ne les demande pas
+  const { data: s } = await supabase.auth.getSession()
+  const vide = { data: [] }
   const [pub, miens, votes] = await Promise.all([
     supabase.rpc('coeurs_publics'),
-    supabase.rpc('mes_coeurs'),
-    supabase.from('coups_de_coeur').select('boutique_id, sens'),
+    s.session ? supabase.rpc('mes_coeurs') : vide,
+    s.session ? supabase.from('coups_de_coeur').select('boutique_id, sens') : vide,
   ])
   if (pub.error) throw pub.error
   return {

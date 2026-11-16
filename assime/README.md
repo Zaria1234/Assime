@@ -120,7 +120,7 @@ assime/
 │   │   ├── ui.jsx             Barre du bas, en-têtes, boutons, vote coup de cœur
 │   │   └── art.jsx            Icônes, visuels, jauge du budget
 │   └── pages/
-│       ├── Entree.jsx         Bienvenue, inscription, connexion, code, rôle
+│       ├── Entree.jsx         Inscription, connexion, code, rôle
 │       ├── Navigation.jsx     Carte, trajet, retour, recherche, boutique, guidage
 │       ├── Autres.jsx         Explorer, liste, assistant, missions, profil
 │       ├── IA.jsx             IA en direct

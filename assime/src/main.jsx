@@ -6,19 +6,19 @@ import { BrowserRouter, MemoryRouter, Routes, Route, Navigate } from 'react-rout
 const Router = import.meta.env.VITE_ROUTER === 'memory' ? MemoryRouter : BrowserRouter
 import './index.css'
 import { AppProvider, useApp } from './store'
-import { Bienvenue, Inscription, Connexion, Code, Role } from './pages/Entree'
+import { Inscription, Connexion, Code, Role } from './pages/Entree'
 import { Carte, Trajet, Retour, Recherche, Boutique, Guidage } from './pages/Navigation'
 import { Explorer, Liste, Assistant, Missions, Profil } from './pages/Autres'
 import IA from './pages/IA'
-import Decouverte, { decouverteVue } from './pages/Decouverte'
+import Decouverte from './pages/Decouverte'
 import TestIA from './pages/TestIA'
 import { VendeurAccueil, VendeurBoutique, Articles } from './pages/Vendeur'
 
 function Accueil() {
   const { user } = useApp()
   if (user?.verifie) return <Navigate to={user.role === 'vendeur' ? '/vendeur' : '/carte'} replace />
-  // Première ouverture : les slides de découverte passent avant Bienvenue
-  return decouverteVue() ? <Bienvenue /> : <Navigate to="/decouverte" replace />
+  // Pas connecté (premier passage ou après déconnexion) : les slides de découverte
+  return <Decouverte />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -28,7 +28,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<Accueil />} />
           <Route path="/decouverte" element={<Decouverte />} />
-          <Route path="/bienvenue" element={<Bienvenue />} />
+          <Route path="/bienvenue" element={<Navigate to="/" replace />} />
           <Route path="/inscription" element={<Inscription />} />
           <Route path="/connexion" element={<Connexion />} />
           <Route path="/code" element={<Code />} />

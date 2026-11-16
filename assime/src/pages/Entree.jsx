@@ -1,4 +1,4 @@
-// Parcours d'entrée : bienvenue, inscription, connexion, code, rôle
+// Parcours d'entrée : inscription, connexion, code, rôle (l'accueil est la dernière slide de Decouverte.jsx)
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../store'
@@ -12,62 +12,6 @@ function messageSimple(err) {
   if (/expired|invalid|token/i.test(err?.message || '')) return 'Code incorrect ou expiré.'
   if (/rate|limit|seconds/i.test(err?.message || '')) return 'Trop de demandes. Attends une minute et réessaie.'
   return "Ça n'a pas marché, réessaie."
-}
-
-const LANGUES = [{ id: 'ewe', nom: 'Éwé' }, { id: 'mina', nom: 'Mina' }, { id: 'fr', nom: 'Français' }]
-
-export function Bienvenue() {
-  const nav = useNavigate()
-  const { langue, setLangue, continuerSansCompte } = useApp()
-  return (
-    <Screen fond="#FFFFFF">
-      <div className="flex-1 flex flex-col px-6 pt-7 pb-7 relative overflow-hidden">
-        <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-brand/20 blur-3xl" />
-        <div className="absolute -left-20 top-1/3 w-64 h-64 rounded-full bg-sun/35 blur-3xl" />
-        <div className="flex items-center gap-2.5 relative">
-          <div className="w-10 h-10 rounded-[14px] bg-brand flex items-center justify-center shadow-[0_8px_18px_-8px_rgba(23,107,82,.9)]">
-            <Icon size={22} stroke="#fff" width={2.4}><path d={I.pin} /><circle cx="12" cy="9" r="2.5" /></Icon>
-          </div>
-          <span className="h-display text-xl">Assimé</span>
-        </div>
-        <div className="relative mt-6 h-[190px] rounded-[30px] bg-white border border-line shadow-[0_20px_40px_-24px_rgba(23,107,82,.5)] overflow-hidden">
-          <svg viewBox="0 0 340 190" className="absolute inset-0 w-full h-full" aria-hidden="true">
-            <rect width="340" height="190" fill="#F4F1E6" />
-            <g fill="#E2E8DF">
-              <rect x="14" y="14" width="90" height="62" rx="10" /><rect x="120" y="14" width="96" height="62" rx="10" /><rect x="232" y="14" width="94" height="62" rx="10" />
-              <rect x="14" y="94" width="90" height="82" rx="10" /><rect x="120" y="94" width="96" height="82" rx="10" /><rect x="232" y="94" width="94" height="82" rx="10" />
-            </g>
-            <path d="M60 160 V85 H168 V45 H280 V135" fill="none" stroke="#176B52" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 10" />
-            <circle cx="60" cy="160" r="9" fill="#F5A623" stroke="#fff" strokeWidth="3" />
-            <circle cx="280" cy="135" r="11" fill="#176B52" stroke="#fff" strokeWidth="4" />
-          </svg>
-          <span className="absolute left-3 bottom-3 px-2.5 py-1 rounded-full bg-sun text-ink text-[11px] font-bold">Ma moto</span>
-          <span className="absolute right-3 top-3 px-2.5 py-1 rounded-full bg-white text-ink text-[11px] font-bold shadow">Boutique de pagnes · 2 min</span>
-        </div>
-        <h1 className="h-display text-[36px] leading-[1.05] mt-6 relative">
-          Ne te <span className="text-ink/35">perds</span> plus à <span className="text-brand">Asigamé.</span>
-        </h1>
-        <p className="text-[15px] text-muted leading-relaxed mt-2.5 relative">Retrouve ta moto, trouve ta boutique, gère ton budget. Guidé·e dans ta langue.</p>
-        <div className="grid grid-cols-3 gap-2 mt-5 relative" role="group" aria-label="Langue">
-          {LANGUES.map(l => (
-            <button key={l.id} type="button" onClick={() => setLangue(l.id)} aria-pressed={langue === l.id}
-              className={'h-11 rounded-full text-[14px] font-semibold transition-all ' + (langue === l.id ? 'bg-[#E6F4EC] text-brand border-2 border-brand' : 'bg-white text-ink border border-line')}>
-              {l.nom}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1 min-h-4" />
-        <div className="flex flex-col gap-2.5 relative">
-          <button type="button" onClick={() => nav('/inscription')} className="h-14 rounded-full bg-sun text-ink pl-1.5 pr-5 flex items-center gap-3 shadow-[0_12px_26px_-10px_rgba(245,166,35,.9)]">
-            <span className="w-11 h-11 rounded-full bg-white text-ink flex items-center justify-center text-xl font-bold nudge">»</span>
-            <span className="flex-1 text-center font-bold -ml-11">Créer mon compte</span>
-          </button>
-          <Link to="/connexion" className="btn h-[50px] bg-white text-ink border border-line">J'ai déjà un compte</Link>
-          <Link to="/carte" onClick={continuerSansCompte} className="text-center text-muted underline font-semibold py-1">Continuer sans compte</Link>
-        </div>
-      </div>
-    </Screen>
-  )
 }
 
 function Telephone({ value, onChange }) {

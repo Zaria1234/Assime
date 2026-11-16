@@ -1,37 +1,59 @@
 // Carte Leaflet : vue satellite (Esri) ou plan (OpenStreetMap)
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
+import { createRoot } from 'react-dom/client'
+import { flushSync } from 'react-dom'
 import { MARCHE } from '../lib/geo'
+import { Emoji, teinte, ICONES } from './art'
 
 const SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 const PLAN = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 
-// Marqueurs plats, aux couleurs de l'app, sans halo
-const pin = (color, size = 14, bord = '#fff') => L.divIcon({
-  className: '',
-  html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${bord === '#fff' ? 2 : 3}px solid ${bord}"></div>`,
-  iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2],
-})
-// Boutique avec ses coups de cœur (pouces levés visibles par tous)
-const pinCoeur = n => L.divIcon({
-  className: '',
-  html: `<div style="display:flex;align-items:center;gap:4px;transform:translate(-8px,-8px)"><div style="width:14px;height:14px;border-radius:50%;background:#7B61F0;border:2px solid #fff;flex-shrink:0"></div><div style="display:flex;align-items:center;gap:3px;background:#fff;color:#5A3FD6;font:700 11px Inter,sans-serif;padding:2px 6px 2px 5px;border-radius:999px;border:1px solid #ECECF1"><svg width="11" height="11" viewBox="0 0 24 24" fill="#7B61F0"><path d="M7 10v10H4V10zM7 10l4-7c1.5 0 2.5 1 2.5 2.5V9h5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.3 20H7z"/></svg>${n}</div></div>`,
-  iconSize: [0, 0], iconAnchor: [0, 0],
-})
-const motoIcon = L.divIcon({
-  className: '',
-  html: '<div style="background:#16181D;color:#fff;font:700 12px Inter,sans-serif;padding:5px 10px;border-radius:999px;border:2px solid #fff;white-space:nowrap">Ma moto</div>',
-  iconSize: [70, 26], iconAnchor: [35, 30],
-})
+// ---------- Marqueurs façon Google Maps : rond blanc + icône de la catégorie, en SVG dans L.divIcon ----------
+const echappe = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const POUCE = 'M7 10v10H4V10zM7 10l4-7c1.5 0 2.5 1 2.5 2.5V9h5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.3 20H7z'
+
+// Icônes Phosphor des catégories (mêmes icônes et couleurs que ICONES / teinte), converties une fois en texte SVG
+// au chargement, hors du rendu de React. Catégorie inconnue (ajoutée par un vendeur) : icône « Autre ».
+const SVG_ICONES = (() => {
+  const hote = document.createElement('div')
+  const racine = createRoot(hote)
+  const svg = {}
+  for (const cat of Object.keys(ICONES)) {
+    flushSync(() => racine.render(<Emoji key={cat} cat={cat} size={24} color={teinte(cat)[1]} />))
+    svg[cat] = hote.innerHTML
+  }
+  racine.unmount()
+  return svg
+})()
+const iconeSvg = (cat, taille) => (SVG_ICONES[cat] || SVG_ICONES.Autre).replace('width="24" height="24"', `width="${taille}" height="${taille}"`)
+
+/** Rond blanc avec l'icône au centre. grand = lieu sélectionné ou destination (44 px, bordure verte, nom toujours visible). */
+function rond({ cat, nom, coeurs = 0, grand = false, nomVisible = false }) {
+  const t = grand ? 44 : 32, ic = grand ? 24 : 18, bord = grand ? 3 : 1
+  const r = t / 2 - bord / 2
+  const badge = coeurs > 0
+    ? `<span class="map-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="#7B61F0" aria-hidden="true"><path d="${POUCE}"/></svg>${coeurs}</span>`
+    : ''
+  const etiquette = nom ? `<span class="map-nom${grand || nomVisible ? ' toujours' : ''}" style="top:${t + 1}px">${echappe(nom)}</span>` : ''
+  return L.divIcon({
+    className: 'map-rond',
+    html: `<svg class="map-disque" width="${t}" height="${t}" viewBox="0 0 ${t} ${t}" aria-hidden="true"><circle cx="${t / 2}" cy="${t / 2}" r="${r}" fill="#fff" stroke="${grand ? '#176B52' : '#C9C9D1'}" stroke-width="${bord}"/><g transform="translate(${(t - ic) / 2} ${(t - ic) / 2})">${iconeSvg(cat, ic)}</g></svg>${badge}${etiquette}`,
+    iconSize: [t, t], iconAnchor: [t / 2, t / 2], tooltipAnchor: [0, -t / 2],
+  })
+}
+// Toi : point bleu-vert avec un halo léger
 const meIcon = L.divIcon({
-  className: '',
-  html: '<div style="width:18px;height:18px;border-radius:50%;background:#F5A623;border:3px solid #fff;box-shadow:0 0 0 1px #16181D"></div>',
-  iconSize: [18, 18], iconAnchor: [9, 9],
+  className: 'map-rond',
+  html: '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#0E9F8E" opacity=".2"/><circle cx="20" cy="20" r="8" fill="#0E9F8E" stroke="#fff" stroke-width="3"/></svg>',
+  iconSize: [40, 40], iconAnchor: [20, 20],
 })
+// Ma moto : rond blanc avec l'icône moto, nom toujours visible
+const motoIcon = () => rond({ cat: 'Parking', nom: 'Ma moto', nomVisible: true })
 
 export default function MapView({
   center = MARCHE, zoom = 18, moi, moto, trajet = [], fantome = [], route = [],
-  boutiques = [], lieux = [], arrets = [], onBoutique, onClick, fit, className = '', showToggle = true, togglePos = 'right-3 bottom-6',
+  boutiques = [], lieux = [], arrets = [], selection, onBoutique, onClick, fit, className = '', showToggle = true, togglePos = 'right-3 bottom-6',
 }) {
   const el = useRef(null)
   const map = useRef(null)
@@ -55,6 +77,10 @@ export default function MapView({
     layers.current.plan.on('tileerror', panne)
     layers.current.sat.addTo(m)
     layers.current.overlay = L.layerGroup().addTo(m)
+    // Les noms des lieux apparaissent à partir du zoom 18
+    const noms = () => el.current?.classList.toggle('zoom-noms', m.getZoom() >= 18)
+    m.on('zoomend', noms)
+    noms()
     map.current = m
     return () => m.remove()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,15 +110,19 @@ export default function MapView({
     if (route.length > 1) {
             L.polyline(route, { color: '#F5A623', weight: 6 }).addTo(g)
     }
-    lieux.forEach(l => L.marker(l.pos, { icon: pin('#fff', 10, '#7B61F0') }).bindTooltip(l.nom, { direction: 'top', className: 'map-pill' }).addTo(g))
+    lieux.forEach(l => {
+      const grand = selection != null && l.id === selection
+      L.marker(l.pos, { icon: rond({ cat: l.type || 'Lieu', nom: l.nom, grand }), zIndexOffset: grand ? 800 : 0, title: l.nom }).addTo(g)
+    })
     boutiques.forEach(b => {
-      const mk = L.marker(b.pos, { icon: b.coeurs > 0 ? pinCoeur(b.coeurs) : pin('#7B61F0') }).bindTooltip(b.nom, { direction: 'top', className: 'map-pill' }).addTo(g)
+      const grand = selection != null && b.id === selection
+      const mk = L.marker(b.pos, { icon: rond({ cat: b.categorie || 'Tout', nom: b.nom, coeurs: b.coeurs, grand }), zIndexOffset: grand ? 800 : 100, title: b.nom }).addTo(g)
       if (onBoutique) mk.on('click', () => onBoutique(b))
     })
-    arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(a.nom, { direction: 'top', className: 'map-pill' }).addTo(g))
-    if (moto) L.marker(moto, { icon: motoIcon }).addTo(g)
-    if (moi) L.marker(moi, { icon: meIcon, interactive: false }).addTo(g)
-  }, [moi, moto, trajet, fantome, route, boutiques, lieux, arrets, onBoutique])
+    arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(echappe(a.nom), { direction: 'top', className: 'map-pill' }).addTo(g))
+    if (moto) L.marker(moto, { icon: motoIcon(), zIndexOffset: 900, title: 'Ma moto' }).addTo(g)
+    if (moi) L.marker(moi, { icon: meIcon, interactive: false, zIndexOffset: 1000 }).addTo(g)
+  }, [moi, moto, trajet, fantome, route, boutiques, lieux, arrets, selection, onBoutique])
 
   // Cadrage
   const fitKey = fit ? JSON.stringify(fit) : ''

@@ -158,7 +158,7 @@ export function VendeurBoutique() {
             <div className="label mb-2">Où est ma boutique ?</div>
             <div className="card p-3 flex flex-col gap-2.5">
               <button type="button" onClick={maPosition} className="btn bg-ink text-white h-12"><Icon d="M12 2v3M12 19v3M2 12h3M19 12h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" size={18} />Utiliser ma position GPS</button>
-              <MapView className="h-44 rounded-xl overflow-hidden" showToggle={false} boutiques={pos ? [{ id: 'x', nom: nom || 'Ma boutique', pos }] : []} onClick={setPos} fit={pos ? [pos] : undefined} />
+              <MapView className="h-44 rounded-xl overflow-hidden" showToggle={false} boutiques={pos ? [{ id: 'x', nom: nom || 'Ma boutique', categorie: cat || 'Tout', pos }] : []} selection="x" onClick={setPos} fit={pos ? [pos] : undefined} />
               <p className="text-xs text-muted">{msgGps || (pos ? 'Position enregistrée. Touche la carte pour la corriger.' : 'Mets-toi devant ton stand et touche le bouton, ou touche la carte.')}</p>
             </div>
           </div>

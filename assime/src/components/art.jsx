@@ -5,7 +5,7 @@ import {
   DeviceMobileIcon, DropIcon, BuildingsIcon, MapPinIcon, ThumbsUpIcon, BowlFoodIcon, HairDryerIcon, MaskHappyIcon, NeedleIcon, WarehouseIcon, MagicWandIcon,
 } from '@phosphor-icons/react'
 
-const ICONES = {
+export const ICONES = {
   'Pagnes wax': DressIcon, Tissus: NeedleIcon, Alimentation: BowlFoodIcon, 'Mèches et coiffure': HairDryerIcon, Artisanat: MaskHappyIcon, 'Tourisme et souvenirs': MaskHappyIcon, 'Alimentation générale': BowlFoodIcon, Grossistes: WarehouseIcon, 'Pour toi': MagicWandIcon, Épices: PepperIcon, Friperie: TShirtIcon, Chaussures: SneakerIcon,
   Cosmétiques: SparkleIcon, 'Perles et bijoux': DiamondIcon, Sacs: HandbagIcon, Vaisselle: CookingPotIcon, Autre: BagIcon,
   Tout: StorefrontIcon, Favoris: HeartIcon, Église: ChurchIcon, Banque: BankIcon, Librairie: BooksIcon, Pharmacie: PillIcon,

@@ -1,5 +1,26 @@
 # Journal des versions
 
+## 1.7.0 — 17 novembre 2026
+
+### Écran de découverte refait
+- Les slides s'affichent **à chaque arrivée sans être connecté** (premier passage ou après déconnexion). Connecté, on arrive directement sur la carte.
+- **« Créer un compte »** (orange) et **« J'ai déjà un compte »** restent en bas de toutes les slides. Plus de bouton « Suivant » : on défile au doigt, avec les points de progression. « Passer » va à la dernière slide.
+- La **dernière slide reprend l'ancien écran Bienvenue** : « Ne te perds plus à Asigamé », choix de la langue, « Continuer sans compte ». L'adresse `/bienvenue` y renvoie.
+- **Design sobre** : fond blanc uni, dessins SVG gris très clair à traits fins, un seul accent vert. L'orange ne sert qu'au bouton « Créer un compte ».
+- Nouveaux textes des 6 slides.
+- Profil → « Découvrir Assimé » : pour un compte connecté, les 6 slides avec un bouton « Fermer ».
+
+### Marqueurs de carte façon Google Maps
+- Chaque boutique et chaque repère : **rond blanc de 32 px** avec l'icône colorée de sa catégorie (les mêmes que dans le reste de l'app).
+- **Badge des coups de cœur** en haut à droite du rond, s'il y en a.
+- **Nom sous le rond** à partir du zoom 18 (texte sombre, contour blanc).
+- Lieu sélectionné ou destination du guidage : rond de 44 px, bordure verte, nom toujours visible.
+- « Toi » : point bleu-vert avec halo ; « Ma moto » : rond blanc avec l'icône moto.
+- Les noms saisis par les vendeurs sont échappés avant d'être affichés sur la carte.
+
+### Correction
+- Sans compte, l'app ne demande plus `mes_coeurs` ni les votes personnels : plus d'erreur 401 dans la console.
+
 ## 1.6.0 — 16 novembre 2026
 
 ### Écran de découverte

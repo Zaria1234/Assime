@@ -25,7 +25,7 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 
 ### 2. Accueil et compte — 20 s
 
-1. Écran **Bienvenue** : montrer le choix de langue **Éwé / Mina / Français**.
+1. **Slides de découverte** (toucher « Passer » pour la dernière) : montrer le choix de langue **Éwé / Mina / Français**.
 2. **Créer mon compte** → prénom, numéro, **Acheter** → code (taper n'importe quels 6 chiffres).
 
 ### 3. Ne plus perdre sa moto — 60 s (le moment fort)
