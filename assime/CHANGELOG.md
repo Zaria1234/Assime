@@ -1,5 +1,37 @@
 # Journal des versions
 
+## 1.9.0 — 17 novembre 2026
+
+### Langues : Éwé · Français · English
+- **Mina retiré**, **anglais ajouté**. Tous les textes de l'app passent par `t('cle')` (`src/i18n.js`) : slides, accueil, connexion, carte, explorer, boutique, guidage, liste, IA, missions, profil, espace vendeur, messages et erreurs.
+- Toucher une langue change **tout l'écran tout de suite** ; le bouton choisi est en surbrillance. Choix en haut des slides, sur la page d'accueil, sur la carte et dans **Profil → Réglages**. La langue est gardée sur le téléphone (`assime_langue_v2`, français par défaut).
+- **L'IA répond dans la langue choisie** (`langue` envoyée à `/api/ia` et ajoutée aux consignes ; l'IA locale répond aussi en anglais et comprend des phrases simples en anglais).
+- **Voix** : fr-FR (français et éwé) ou en-US (anglais), pour la lecture et le micro.
+- **Éwé** : phrases courtes traduites, **à faire vérifier** ; tout le reste s'affiche en français. Liste complète dans `docs/TRADUCTIONS.md` (générée depuis le dictionnaire).
+
+### Carte
+- **La carte ne se recadre plus toute seule** : elle se centre une seule fois à l'ouverture (ou au démarrage d'un guidage). Le GPS ne touche plus jamais au zoom ni à la position.
+- **Bouton « Recentrer »** (rond blanc, cible) en bas à droite : carte, trajet, retour, guidage.
+- Les marqueurs et le plan ne changent pas.
+
+### Vendre demande un compte
+- Sans compte, « Tu vends au marché ? », l'espace vendeur et « Créer ma boutique » affichent **« Pour vendre, crée d'abord ton compte »**. « Créer mon compte » ouvre l'inscription avec **Vendeur présélectionné** ; après l'inscription, on arrive directement sur **« Créer ma boutique »**. Les acheteurs sans compte gardent tout le reste.
+
+### Trajet
+- **« Arrêter »** met en pause et reste sur l'écran ; il devient **« Continuer »** (vert) pour reprendre.
+- **« Retourner à mon point de départ »** remplace « Retourner à ma moto ». Petit lien **« Terminer le trajet »** pour arrêter pour de bon.
+- Partout, le retour parle de **« mon point de départ »** (« Ma moto » reste seulement dans le dessin de présentation).
+
+### Formulaire « Créer ma boutique »
+- Champs obligatoires avec **astérisque rouge** : nom, ce que je vends, position, au moins un contact (téléphone ou WhatsApp).
+- Envoi incomplet : **bordure rouge + message rouge** sous chaque champ (« Indique le nom de ta boutique »…), la page va sur la première erreur ; le rouge disparaît dès que le champ est rempli.
+
+### IA
+- Phrase rapide touchée : **verte avec un petit chargement** ; toutes les phrases, « Envoyer » et le micro sont bloqués jusqu'à la réponse. Le message apparaît tout de suite avec **« L'IA réfléchit… »** en dessous (IA en direct et assistant de la liste).
+
+### Slides
+- « Va où tu veux » : dessin seul (chemin vert, départ et arrivée), sans icône. Les autres slides gardent leurs icônes.
+
 ## 1.8.0 — 17 novembre 2026
 
 ### Accueil, slides et carte

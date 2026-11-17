@@ -54,7 +54,7 @@ Garde-fous :
 | « Ajoute de l'huile et du savon » | Articles ajoutés à la liste |
 | « Enlève le lait » | Article retiré |
 | « Combien il me reste ? » | Phrase exacte calculée par l'app |
-| « Ramène-moi à ma moto » | Bouton « Retour à ma moto » |
+| « Ramène-moi à mon point de départ » | Bouton « Retour à mon point de départ » |
 
 ## Activer Gemini
 

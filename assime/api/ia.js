@@ -26,8 +26,17 @@ Méthode :
    - « J'ai trouvé / acheté X à N » → operations [{type: "cocher", nom: X, prix: N}] (si X n'est pas dans la liste, l'app l'ajoute déjà cochée).
    - « Ajoute X » → "ajouter". « Enlève X » → "retirer". Plusieurs articles → plusieurs opérations.
    - Question d'argent → parler_budget = true (l'app ajoute elle-même la phrase exacte : ne répète pas les montants).
-   - « Ramène-moi à ma moto » → action "retour_moto" si moto = true, sinon explique qu'il faut d'abord enregistrer le trajet.
+   - « Ramène-moi à mon point de départ » (ou « à ma moto ») → action "retour_moto" si moto = true, sinon explique qu'il faut d'abord enregistrer le trajet.
 4. Si rien ne correspond, dis-le simplement et propose une autre piste.`
+
+// Langue de la réponse, choisie dans l'app (Éwé / Français / English)
+const LANGUE_REPONSE = {
+  fr: 'Réponds en français.',
+  en: 'Answer in simple English (the user chose English in the app), still using informal « you ». Keep shop and place names as they are.',
+  ewe: "La personne a choisi l'éwé (langue du Togo). Réponds en éwé simple si tu en es sûr ; sinon réponds en français simple. Garde les noms de boutiques et de lieux tels quels.",
+}
+const INCOMPRIS = "Je n'ai pas bien compris. Tu peux répéter ?"
+const fallbackIncompris = { fr: INCOMPRIS, en: "I didn't quite understand. Can you say it again?", ewe: INCOMPRIS }
 
 /** Appel à Gemini, avec bascule sur le modèle de secours si le principal est indisponible */
 async function gemini(ctx, corps) {
@@ -61,6 +70,7 @@ export async function repondreIA(corps, env = process.env) {
   if (!message) return { statut: 400, json: { erreur: 'message vide' } }
 
   const modele = env.GEMINI_MODEL || MODELE_DEFAUT
+  const langue = ['fr', 'en', 'ewe'].includes(corps.langue) ? corps.langue : 'fr'
   const ctx = {
     cle, modele,
     boutiques: (corps.boutiques || []).slice(0, 300),
@@ -72,7 +82,7 @@ export async function repondreIA(corps, env = process.env) {
     memo: { lome: {}, sources: [] },
   }
   const categories = [...new Set(ctx.boutiques.map(b => b.categorie))].join(', ')
-  const situation = `Catégories de boutiques : ${categories}.\nPosition connue : ${ctx.position ? 'oui' : 'non'}. Moto enregistrée : ${corps.moto ? 'oui' : 'non'}. Articles dans la liste : ${ctx.liste.length}.`
+  const situation = `Catégories de boutiques : ${categories}.\nPosition connue : ${ctx.position ? 'oui' : 'non'}. Point de départ (moto) enregistré : ${corps.moto ? 'oui' : 'non'}. Articles dans la liste : ${ctx.liste.length}.`
 
   // Mémoire de la conversation (derniers échanges)
   const historique = (corps.historique || []).slice(-6).filter(h => h?.texte)
@@ -88,7 +98,7 @@ export async function repondreIA(corps, env = process.env) {
     for (let etape = 0; etape < ETAPES_MAX && !finale; etape++) {
       const derniere = etape === ETAPES_MAX - 1
       const data = await gemini(ctx, {
-        systemInstruction: { parts: [{ text: CONSIGNES }] },
+        systemInstruction: { parts: [{ text: CONSIGNES + '\n\nLangue : ' + LANGUE_REPONSE[langue] }] },
         contents,
         tools: [{ functionDeclarations: DECLARATIONS }],
         // ANY : Gemini doit toujours appeler un outil. À la dernière étape, seulement « repondre ».
@@ -100,7 +110,7 @@ export async function repondreIA(corps, env = process.env) {
       if (!appels.length) {
         // Pas d'appel d'outil : on prend le texte tel quel
         const texte = (contenu?.parts || []).map(p => p.text || '').join('').trim()
-        finale = { reponse: texte || "Je n'ai pas bien compris. Tu peux répéter ?" }
+        finale = { reponse: texte || fallbackIncompris[langue] }
         break
       }
       contents.push(contenu) // on renvoie la réponse du modèle telle quelle (signatures de réflexion incluses)
@@ -124,7 +134,7 @@ export async function repondreIA(corps, env = process.env) {
   return {
     statut: 200,
     json: {
-      reponse: String(finale.reponse || '').slice(0, 600) || "Je n'ai pas bien compris. Tu peux répéter ?",
+      reponse: String(finale.reponse || '').slice(0, 600) || fallbackIncompris[langue],
       boutiques: (finale.boutiques || []).filter(id => idsB.has(id)).slice(0, 3), // jamais de boutique inventée
       lieux: (finale.lieux || []).filter(id => idsL.has(id)).slice(0, 2),
       lieux_lome: (finale.lieux_lome || []).map(id => ctx.memo.lome[id]).filter(Boolean).slice(0, 3), // seulement ceux vraiment trouvés

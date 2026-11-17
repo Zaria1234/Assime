@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useCallback } f
 import { BOUTIQUES_DEMO, COEURS_DEMO, LISTE_DEMO, TRAJET_DEMO, MISSIONS, MISSIONS_VENDEUR, LIEUX_UTILES } from './data/demo'
 import { MARCHE, keepPoint, offset, pathLength } from './lib/geo'
 import { parler } from './lib/voix'
+import { traduire, traduireCategorie, LANGUES } from './i18n'
 import { supabase, identite, sessionActuelle, deconnecter, chargerCompte, enregistrerListes, chargerBoutiques, enregistrerBoutique, chargerCoeurs, envoyerVote, enregistrerProfil, envoyerReleve, abonner, versLigne } from './lib/supabase'
 
 // Un compte neuf commence vide : une liste sans articles, des missions à faire
@@ -11,8 +12,8 @@ const nouvelId = () => 'l' + Date.now().toString(36) + Math.random().toString(36
 const LISTE_VIDE = () => [{ id: nouvelId(), nom: 'Ma liste', budget: 0, items: [] }]
 const aFaire = ms => ms.map(m => ({ ...m, fait: false, detail: m.detail === 'Fait' ? 'Enregistre un trajet de bout en bout' : m.detail }))
 
-// Erreur technique : détail dans la console seulement, message simple à l'écran
-const ECHEC = "Ça n'a pas marché, réessaie"
+// Erreur technique : détail dans la console seulement, message simple à l'écran (clé de traduction)
+const ECHEC = 'erreur.echec'
 const signaler = e => { console.error('[Assimé]', e); return ECHEC }
 
 // Restes de l'ancienne version (exemples mis d'office) : ils ne doivent pas apparaître hors Mode démo
@@ -36,7 +37,14 @@ function usePersist(key, initial) {
 
 export function AppProvider({ children }) {
   const [user, setUser] = usePersist('user', null) // { prenom, tel, role: 'acheteur' | 'vendeur' }
-  const [langue, setLangue] = usePersist('langue', 'ewe')
+  // Langue de toute l'interface et de l'IA. Nouvelle clé : l'ancienne valait « ewe » pour tout le monde par défaut.
+  const [langueBrute, setLangue] = usePersist('langue_v2', 'fr')
+  const langue = LANGUES.some(l => l.id === langueBrute) ? langueBrute : 'fr'
+  const t = useCallback((cle, vars) => traduire(langue, cle, vars), [langue])
+  const tc = useCallback(cat => traduireCategorie(langue, cat), [langue])
+  // Repère du marché dans la langue choisie (nom et indication) ; les noms propres restent tels quels
+  const lieuTraduit = useCallback(l => ({ ...l, nom: traduire(langue, 'lieu.' + l.id + '.nom', null, l.nom), note: traduire(langue, 'lieu.' + l.id + '.note', null, l.note) }), [langue])
+  useEffect(() => { document.documentElement.lang = langue === 'ewe' ? 'ee' : langue }, [langue])
   const [boutiques, setBoutiques] = usePersist('boutiques_v2', BOUTIQUES_DEMO)
   // Coups de cœur : { boutiqueId: { plus, moins } } et mon vote par boutique ('plus' | 'moins')
   const [coeurs, setCoeurs] = usePersist('coeurs', COEURS_DEMO)
@@ -137,8 +145,9 @@ export function AppProvider({ children }) {
   const watchRef = useRef(null)
   const demoRef = useRef(null)
   const enregistreRef = useRef(false)
-  // Pause pendant un arrêt : on ne trace plus, jusqu'à « Poursuivre »
+  // Pause : on ne trace plus, jusqu'à « Continuer ». motifPause = 'arret' (arrêt marqué) ou 'manuel' (bouton « Arrêter »)
   const [enPause, setEnPause] = useState(false)
+  const [motifPause, setMotifPause] = useState(null)
   const pauseRef = useRef(false)
   const trajetRef = useRef(trajet)
   useEffect(() => { trajetRef.current = trajet }, [trajet])
@@ -173,7 +182,7 @@ export function AppProvider({ children }) {
   const demarrerTrajet = ({ simulation = false } = {}) => {
     arreterDemo()
     trajetRef.current = []; setTrajet([]); setMoto(null); setArrets([]); setDebut(Date.now())
-    pauseRef.current = false; setEnPause(false)
+    pauseRef.current = false; setEnPause(false); setMotifPause(null)
     enregistreRef.current = true; setEnregistre(true); setDemo(simulation)
     if (simulation) {
       // Mode démo : la liste d'exemple, seulement si ma liste est vide
@@ -195,7 +204,7 @@ export function AppProvider({ children }) {
   const arreterTrajet = () => {
     arreterDemo()
     enregistreRef.current = false; setEnregistre(false)
-    pauseRef.current = false; setEnPause(false)
+    pauseRef.current = false; setEnPause(false); setMotifPause(null)
     const t = trajetRef.current
     if (t.length > 1) setHistorique(h => [{ id: Date.now(), date: new Date().toISOString(), longueur: pathLength(t), points: t }, ...h].slice(0, 20))
     // Le trajet aide à cartographier les allées (envoyé sans nom, seulement les points)
@@ -208,10 +217,11 @@ export function AppProvider({ children }) {
     const p = moiEffectif || trajetRef.current[trajetRef.current.length - 1]
     if (!p) return
     setArrets(a => [...a, { id: Date.now(), pos: p, nom: 'Arrêt ' + (a.length + 1) }])
-    pauseRef.current = true; setEnPause(true)
+    pauseRef.current = true; setEnPause(true); setMotifPause('arret')
     try { window.speechSynthesis.cancel() } catch { /* pas de voix */ }
   }
-  const poursuivre = () => { pauseRef.current = false; setEnPause(false) }
+  const mettreEnPause = () => { if (!enregistreRef.current) return; pauseRef.current = true; setEnPause(true); setMotifPause('manuel') }
+  const poursuivre = () => { pauseRef.current = false; setEnPause(false); setMotifPause(null) }
   const effacerArrets = () => setArrets([])
 
   const boutique = id => boutiques.find(b => b.id === id)
@@ -348,7 +358,7 @@ export function AppProvider({ children }) {
         const enregistree = await enregistrerBoutique(b, serveur.uid)
         dernierEnvoi.current[enregistree.id] = JSON.stringify(versLigne(enregistree))
         setBoutiques(bs => bs.map(x => (x.id === enregistree.id ? enregistree : x)))
-        setServeur(s => ({ ...s, envoi: false, erreur: null, message: 'Boutique enregistrée' }))
+        setServeur(s => ({ ...s, envoi: false, erreur: null, message: 'serveur.boutiqueEnregistree' }))
       } catch (e) {
         setServeur(s => ({ ...s, envoi: false, erreur: signaler(e), message: null }))
       }
@@ -363,14 +373,14 @@ export function AppProvider({ children }) {
   const points = missions.filter(m => m.fait).reduce((s, m) => s + m.points, 0)
 
   const value = {
-    user, setUser, langue, setLangue, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
+    user, setUser, langue, setLangue, t, tc, lieuTraduit, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
     boutiques, setBoutiques, boutique, maBoutiqueId, setMaBoutiqueId,
     coeursDe, voter, mesVotes, serveur, interets, noterInteret, activites, setActivites,
     liste, setListe, budget, setBudget, favoris, setFavoris,
     listes, listeActive: active, setListeId, nouvelleListe, supprimerListe,
     historique, missions, setMissions, points,
     moi: moiEffectif, simule: !moi && gpsIndispo, gpsIndispo, positionOuMarche: moiEffectif || MARCHE, precision, erreurGps,
-    voix, setVoix, dire, notes, missionsVendeur, setMissionsVendeur, raccourcis, ajouterRaccourci, retirerRaccourci, setNotes, arrets, marquerArret, enPause, poursuivre, effacerArrets, renommerListe,
+    voix, setVoix, dire, notes, missionsVendeur, setMissionsVendeur, raccourcis, ajouterRaccourci, retirerRaccourci, setNotes, arrets, marquerArret, enPause, motifPause, mettreEnPause, poursuivre, effacerArrets, renommerListe,
     trajet, moto, enregistre, demo, debut,
     demarrerTrajet, arreterTrajet, quitterDemo,
   }

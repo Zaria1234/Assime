@@ -25,14 +25,14 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 
 ### 2. Accueil et compte — 20 s
 
-1. **Slides de découverte** (toucher « Passer » pour la dernière) : montrer le choix de langue **Éwé / Mina / Français**.
+1. **Slides de découverte** (toucher « Passer » pour la dernière) : montrer le choix de langue **Éwé / Français / English** : en haut des slides, tout l'écran change tout de suite.
 2. **Créer mon compte** → prénom, numéro, **Acheter** → code (taper n'importe quels 6 chiffres).
 
 ### 3. Ne plus perdre sa moto — 60 s (le moment fort)
 
 1. Sur la **Carte**, toucher **« Mode démo »**. Le trajet se dessine depuis le parking.
-2. Toucher **« Marquer un arrêt »** : le trajet se met **en pause**. Expliquer : « Je m'arrête acheter quelque chose. » Puis **« Poursuivre »**.
-3. Toucher **« Retourner à ma moto »**.
+2. Toucher **« Marquer un arrêt »** : le trajet se met **en pause**. Expliquer : « Je m'arrête acheter quelque chose. » Puis **« Continuer »**. « Arrêter » met aussi en pause sans quitter l'écran.
+3. Toucher **« Retourner à mon point de départ »**.
 4. Montrer le badge **« −xx m »** : l'app a **coupé la boucle** où l'on a tourné en rond.
 5. Montrer **« Couper le son »** : la voix guide, on peut la couper.
 
@@ -62,7 +62,7 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 
 ### 8. Conclusion — 15 s
 
-> « Assimé aide l'acheteur à ne plus se perdre, et le vendeur à être trouvé. Prochaines étapes : le relevé des allées du marché, les voix en éwé et mina, et le back-end. »
+> « Assimé aide l'acheteur à ne plus se perdre, et le vendeur à être trouvé. Prochaines étapes : le relevé des allées du marché, les voix et la traduction complète en éwé, et le back-end. »
 
 ---
 
@@ -73,6 +73,6 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 | Le GPS est-il assez précis dans le marché ? | On filtre les points imprécis (plus de 25 m d'erreur) et on enregistre le chemin réel. Le retour suit les pas, pas une ligne droite. |
 | Pourquoi pas Google Maps ? | Google ne connaît ni les allées ni les stands. Assimé enregistre **ton** chemin et les vendeurs placent **eux-mêmes** leur stand. |
 | Où est l'IA ? | Recherche en langage naturel, assistant de liste, sections « Pour toi », conversation vocale. Démo locale, branchée à un vrai modèle ensuite. |
-| Et l'éwé / le mina ? | Les navigateurs ne savent pas encore les parler : on enregistre des fichiers audio des phrases de guidage. |
+| Et l'éwé ? | L'écran est traduit en partie (phrases à vérifier dans `docs/TRADUCTIONS.md`, le reste en français). Les navigateurs ne savent pas parler éwé : la voix reste en français, des fichiers audio sont prévus. |
 | Comment gagner de l'argent ? | Pistes à confirmer par l'équipe : mise en avant des boutiques, outils pour grossistes, partenariats. |
 | Les données des vendeurs ? | Aujourd'hui sur le téléphone. Demain sur Supabase, avec des règles d'accès : chaque vendeur ne modifie que sa boutique. |

@@ -23,7 +23,8 @@ export function bearing(a, b) {
 }
 
 const DIRS = ['le nord', 'le nord-est', "l'est", 'le sud-est', 'le sud', 'le sud-ouest', "l'ouest", 'le nord-ouest']
-export const directionName = deg => DIRS[Math.round(deg / 45) % 8]
+export const directionIndex = deg => Math.round(deg / 45) % 8 // 0 = nord … 7 = nord-ouest (l'app traduit dir.0 … dir.7)
+export const directionName = deg => DIRS[directionIndex(deg)]
 
 export const fmtDist = m => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`)
 export const fmtMoney = n => Number(n || 0).toLocaleString('fr-FR')

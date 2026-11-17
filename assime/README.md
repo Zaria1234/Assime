@@ -41,8 +41,8 @@ Le Grand Marché d'Asigamé est immense, dense, sans plan. On s'y perd, on ne re
 | Domaine | Ce qui marche | Écran |
 | --- | --- | --- |
 | **Compte** | Inscription (prénom, téléphone, acheteur/vendeur), connexion par code SMS ou WhatsApp (démo : tout code à 6 chiffres) | `/bienvenue` `/inscription` `/connexion` |
-| **Carte** | Position GPS, boutiques et repères, recherche, raccourcis personnalisables, langue (éwé / mina / français) | `/carte` |
-| **Trajet** | Enregistrement GPS filtré, **arrêts** (pause puis « Poursuivre »), mode démo | `/trajet` |
+| **Carte** | Position GPS, boutiques et repères, recherche, raccourcis personnalisables, langue (éwé / français / anglais, voir `src/i18n.js`), bouton « Recentrer » | `/carte` |
+| **Trajet** | Enregistrement GPS filtré, **arrêts**, « Arrêter » (pause) puis « Continuer », « Retourner à mon point de départ », mode démo | `/trajet` |
 | **Retour à la moto** | Chemin inverse **sans les boucles**, distance, temps, voix, bouton « Couper le son » | `/retour` |
 | **Guidage** | **Par les vraies rues** (OpenStreetMap), distance réelle, consigne de virage, arrêts, coup de cœur à l'arrivée | `/guidage/:id` |
 | **Recherche** | Langage naturel, micro, boutiques Assimé, repères du marché, lieux OpenStreetMap (Ramco, Ecobank…) | `/recherche` |
@@ -149,7 +149,7 @@ Répartition proposée et points d'entrée par rôle : [`docs/ARCHITECTURE.md`](
 | Code de connexion simulé (comptes anonymes côté base) | Vrai SMS / WhatsApp (OTP) |
 | ~~IA à règles, en local~~ | ✅ **Agent Gemini avec outils** (`/api/ia`), IA locale gardée en secours |
 | ~~Guidage en ligne droite~~ | ✅ **Par les rues OpenStreetMap**. Suite : allées intérieures par relevé terrain → [`docs/CARTOGRAPHIE.md`](docs/CARTOGRAPHIE.md) |
-| Voix en français | Fichiers audio **éwé / mina** enregistrés |
+| Voix en français | Fichiers audio **éwé** enregistrés, traductions éwé vérifiées (`docs/TRADUCTIONS.md`) |
 | Positions des boutiques et repères **approximatives** | Relevé terrain au marché |
 | Bouton Satellite / Plan masqué sur la carte d'accueil | À réactiver (`showToggle` dans `Carte`) si besoin |
 

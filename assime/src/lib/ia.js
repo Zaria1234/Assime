@@ -1,24 +1,25 @@
 // « IA » locale de démonstration.
-// Elle comprend des phrases simples en français. Le jour J, on remplace
-// l'intérieur de ces fonctions par un appel à un vrai modèle (via une
-// fonction Vercel, pour ne jamais exposer la clé d'API dans le front).
+// Elle comprend des phrases simples en français (et quelques-unes en anglais) et répond dans la langue
+// choisie (en éwé : en français tant que les phrases ne sont pas traduites et vérifiées).
 import { distance, fmtMoney } from './geo'
+import { traduire, traduireCategorie } from '../i18n'
 
 export const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
 const SYNONYMES = {
-  'Pagnes wax': ['pagne', 'wax', 'bazin', 'tissu wax', 'yards'],
-  Tissus: ['tissu', 'etoffe', 'bazin'],
-  Épices: ['epice', 'piment', 'poivre', 'gingembre', 'condiment'],
-  Friperie: ['fripe', 'friperie', 'vetement'],
-  Chaussures: ['chaussure', 'sandale', 'basket', 'soulier'],
-  Cosmétiques: ['cosmetique', 'creme', 'savon', 'beaute', 'parfum'],
-  'Perles et bijoux': ['perle', 'bijou', 'collier', 'bracelet'],
-  Sacs: ['sac', 'maroquinerie', 'valise'],
-  Vaisselle: ['vaisselle', 'assiette', 'marmite', 'ustensile'],
-  Alimentation: ['riz', 'huile', 'farine', 'sucre', 'lait', 'nourriture', 'aliment', 'alimentation', 'manger', 'tomate', 'conserve', 'haricot', 'pate', 'spaghetti', 'gari', 'igname'],
-  'Mèches et coiffure': ['meche', 'perruque', 'tresse', 'coiffure', 'cheveux', 'rajout', 'coiffeuse'],
-  Artisanat: ['souvenir', 'artisanat', 'sculpture', 'masque', 'cadeau', 'touriste', 'statuette', 'panier'],
+  'Pagnes wax': ['pagne', 'wax', 'bazin', 'tissu wax', 'yards', 'loincloth'],
+  Tissus: ['tissu', 'etoffe', 'bazin', 'fabric', 'cloth'],
+  Épices: ['epice', 'piment', 'poivre', 'gingembre', 'condiment', 'spice', 'pepper', 'chili', 'ginger'],
+  Friperie: ['fripe', 'friperie', 'vetement', 'clothes', 'clothing', 'secondhand'],
+  Chaussures: ['chaussure', 'sandale', 'basket', 'soulier', 'shoe', 'sneaker', 'sandal'],
+  Cosmétiques: ['cosmetique', 'creme', 'savon', 'beaute', 'parfum', 'soap', 'cream', 'beauty', 'perfume'],
+  'Perles et bijoux': ['perle', 'bijou', 'collier', 'bracelet', 'bead', 'jewel', 'jewelry', 'necklace'],
+  Sacs: ['sac', 'maroquinerie', 'valise', 'bag', 'handbag', 'suitcase'],
+  Vaisselle: ['vaisselle', 'assiette', 'marmite', 'ustensile', 'dish', 'plate'],
+  Alimentation: ['riz', 'huile', 'farine', 'sucre', 'lait', 'nourriture', 'aliment', 'alimentation', 'manger', 'tomate', 'conserve', 'haricot', 'pate', 'spaghetti', 'gari', 'igname',
+    'rice', 'oil', 'flour', 'sugar', 'milk', 'food', 'beans', 'yam'],
+  'Mèches et coiffure': ['meche', 'perruque', 'tresse', 'coiffure', 'cheveux', 'rajout', 'coiffeuse', 'hair', 'wig', 'braid', 'extension'],
+  Artisanat: ['souvenir', 'artisanat', 'sculpture', 'masque', 'cadeau', 'touriste', 'statuette', 'panier', 'gift', 'craft', 'mask'],
 }
 
 // Mots qui ne disent rien sur ce qu'on cherche : on les ignore pour ne pas trouver
@@ -28,12 +29,14 @@ const VIDES = new Set(('je j tu il on me moi ma mon mes ta ton te un une des de 
   + 'connais connait connaitre sais savoir montre montrer dis donne emmene emmener amene aller va vais allez stp svp merci bonjour salut '
   + 'boutique boutiques magasin magasins stand stands vendeur vendeuse endroit coin lieu place '
   + 'plus moins tres bien bon bonne pas cher chere chers petit prix proche proches pres loin cote autour '
-  + 'marche grand assigame asigame assivito lome togo quartier ville ce cette ces qui que quoi quel quelle quels quelles avec pour sur dans par').split(' '))
+  + 'marche grand assigame asigame assivito lome togo quartier ville ce cette ces qui que quoi quel quelle quels quelles avec pour sur dans par '
+  // mots anglais qui ne disent rien sur ce qu'on cherche
+  + 'i im looking look for find where is are the an some any want need buy shop shops store stores market near close cheap cheapest wholesale bulk to of in at me take show please do you know can there what which').split(' '))
 
 const REPERES = {
-  Pharmacie: ['pharmacie', 'medicament', 'malade'], Banque: ['banque', 'ecobank', 'argent', 'retrait', 'guichet'],
-  Église: ['eglise', 'cathedrale', 'messe', 'sacre'], Librairie: ['librairie', 'papeterie', 'livre', 'cahier', 'pasteur'],
-  Toilettes: ['toilette', 'wc', 'pipi'], Eau: ['eau', 'boire', 'soif'], Parking: ['parking', 'garer', 'stationner'],
+  Pharmacie: ['pharmacie', 'medicament', 'malade', 'pharmacy', 'drugstore', 'medicine'], Banque: ['banque', 'ecobank', 'argent', 'retrait', 'guichet', 'bank', 'cash', 'atm'],
+  Église: ['eglise', 'cathedrale', 'messe', 'sacre', 'church', 'cathedral'], Librairie: ['librairie', 'papeterie', 'livre', 'cahier', 'pasteur', 'bookshop', 'bookstore', 'book'],
+  Toilettes: ['toilette', 'wc', 'pipi', 'toilet', 'restroom', 'bathroom'], Eau: ['eau', 'boire', 'soif', 'water', 'drink'], Parking: ['parking', 'garer', 'stationner', 'park'],
   'Mobile money': ['momo', 'flooz', 'tmoney', 'mobile', 'depot'], Section: ['section', 'atipoji'],
 }
 
@@ -51,12 +54,14 @@ export function categoriesDe(texte) {
  * Recherche en langage naturel : boutiques du marché ET repères (pharmacie, banque…).
  * Renvoie { reponse, resultats, lieux, inconnu } — inconnu = ce qu'on n'a pas trouvé (à chercher sur la carte de Lomé).
  */
-export function rechercher(texte, boutiques, position, lieux = []) {
+export function rechercher(texte, boutiques, position, lieux = [], langue = 'fr') {
+  const T = (k, v) => traduire(langue, k, v)
+  const en = langue === 'en'
   const t = norm(texte)
   const w = mots(texte)
   const cats = categoriesDe(texte)
-  const gros = /\b(en gros|grossiste|gros)\b/.test(t)
-  const pasCher = /pas cher|moins cher|petit prix|bon prix/.test(t)
+  const gros = /\b(en gros|grossiste|gros|wholesale|bulk)\b/.test(t)
+  const pasCher = /pas cher|moins cher|petit prix|bon prix|cheap|low price/.test(t)
   const utiles = w.filter(x => x.length >= 3 && !VIDES.has(x) && !['gros', 'grossiste'].includes(x))
   const libres = utiles.filter(x => !Object.values(SYNONYMES).flat().some(m => colle(x, m)) && !Object.values(REPERES).flat().some(m => colle(x, m)))
   const dist = p => (position ? distance(position, p) : null)
@@ -77,23 +82,28 @@ export function rechercher(texte, boutiques, position, lieux = []) {
   const reperes = lieux.filter(l => types.includes(l.type) || (libres.length && libres.some(x => mots(l.nom).some(c => c.length >= 4 && (colle(c, x) || colle(x, c))))))
     .map(l => ({ ...l, distance: dist(l.pos) })).sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
 
-  const loin = d => (d != null ? ', à ' + (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km') : '')
+  const metres = d => (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', en ? '.' : ',') + ' km')
+  const loin = d => (d != null ? T('iaL.dist', { d: metres(d) }) : '')
   const de = x => (/^[aeiouyéèêh]/i.test(x) ? " d'" : ' de ') + x
-  const quoi = cats.length ? de(cats[0].toLowerCase()) : ''
+  // En éwé, ces phrases restent en français (traduction à vérifier) : on garde donc la grammaire française
+  const quoi = cats.length ? (en ? ' for ' + traduireCategorie('en', cats[0]).toLowerCase() : de(cats[0].toLowerCase())) : ''
+  const enGros = gros ? T('iaL.gros') : ''
   let reponse, inconnu = null
   if (res.length) {
-    reponse = `J'ai trouvé ${res.length} boutique${res.length > 1 ? 's' : ''}${quoi}${gros ? ' en gros' : ''}${pasCher ? ', de la moins chère à la plus chère' : ''}. `
-      + `${pasCher ? 'La moins chère' : 'La plus proche'} : ${res[0].nom}${loin(res[0].distance)}.`
-    if (reperes[0]) reponse += ` Il y a aussi ${reperes[0].nom}${loin(reperes[0].distance)}.`
+    reponse = T('iaL.trouve', { n: res.length, quoi, gros: enGros, tri: pasCher && res.length > 1 ? T('iaL.tri') : '' }) + ' '
+      + T('iaL.premier', { qui: pasCher ? T('iaL.moinsChere') : T('iaL.plusProche'), nom: res[0].nom, dist: loin(res[0].distance) })
+    if (reperes[0]) reponse += T('iaL.aussi', { nom: reperes[0].nom, dist: loin(reperes[0].distance) })
   } else if (reperes.length) {
-    reponse = `${reperes[0].nom}${loin(reperes[0].distance)}${reperes[0].note && !/relever/i.test(reperes[0].note) ? ' : ' + reperes[0].note.charAt(0).toLowerCase() + reperes[0].note.slice(1) : ''}. Je t'y emmène ?`
+    const r = reperes[0]
+    const note = r.note && !/relever|on site/i.test(r.note) ? (en ? ': ' : ' : ') + r.note.charAt(0).toLowerCase() + r.note.slice(1) : ''
+    reponse = T('iaL.repere', { nom: r.nom, dist: loin(r.distance), note })
   } else if (cats.length) {
-    reponse = `Je n'ai pas encore de boutique${quoi}${gros ? ' en gros' : ''} sur Assimé.`
+    reponse = T('iaL.pasBoutique', { quoi, gros: enGros })
   } else {
     // on garde les mots d'origine (avec accents) : « téléphone », pas « telephone »
     const origine = texte.split(/[\s,;:!?.'’]+/).filter(m => libres.includes(norm(m)))
     inconnu = origine.join(' ') || texte.trim()
-    reponse = `Je ne connais pas encore « ${inconnu} » dans le marché. Je peux le chercher sur la carte de Lomé.`
+    reponse = T('iaL.inconnu', { q: inconnu })
   }
   return { reponse, resultats: res, lieux: reperes, inconnu }
 }
@@ -129,34 +139,37 @@ export function bilan(liste, budget) {
  * « ajoute X », « combien il me reste », « si je prends X à N ».
  * Renvoie { liste, reponse, boutique? }
  */
-export function assistantListe(texte, liste, budget, boutiques = []) {
+export function assistantListe(texte, liste, budget, boutiques = [], langue = 'fr') {
+  const T = (k, v) => traduire(langue, k, v)
   const t = norm(texte)
   const montant = lireMontant(texte)
+  const encore = restants => (restants.length ? T('iaL.encore', { liste: restants.map(r => r.nom.toLowerCase()).join(', ') }) : T('iaL.tout'))
 
-  if (/^(si je prends|si j achete|est ce que j ai assez)/.test(t) && montant) {
+  if (/^(si je prends|si j achete|est ce que j ai assez|if i take|if i buy|can i afford|do i have enough)/.test(t) && montant) {
     const { reste } = bilan(liste, budget)
     const apres = reste - montant
-    return { liste, reponse: apres >= 0 ? `Oui. Après ça, il te resterait ${fmtMoney(apres)} FCFA.` : `Non, il te manquerait ${fmtMoney(-apres)} FCFA.` }
+    return { liste, reponse: apres >= 0 ? T('iaL.siOui', { m: fmtMoney(apres) }) : T('iaL.siNon', { m: fmtMoney(-apres) }) }
   }
 
-  if (/(combien|reste|depense|budget|bilan)/.test(t) && !/(trouve|achete|pris)/.test(t)) {
+  if (/(combien|reste|depense|budget|bilan|how much|left|spent)/.test(t) && !/(trouve|achete|pris|found|bought)/.test(t)) {
     const { depense, reste, restants } = bilan(liste, budget)
-    return { liste, reponse: `Tu as dépensé ${fmtMoney(depense)} sur ${fmtMoney(budget)} FCFA. Il te reste ${fmtMoney(reste)}.` + (restants.length ? ` Encore à trouver : ${restants.map(r => r.nom.toLowerCase()).join(', ')}.` : ' Tu as tout trouvé !') }
+    return { liste, reponse: T('iaL.bilan', { d: fmtMoney(depense), b: fmtMoney(budget), r: fmtMoney(reste) }) + encore(restants) }
   }
 
-  if (/^(ajoute|rajoute|note|mets)/.test(t)) {
-    const nom = texte.replace(/^\s*(ajoute|rajoute|note|mets)\s*(moi)?\s*/i, '').replace(/\s*(a|à) (ma|la) liste.*$/i, '').replace(/^(du|de la|de l'|des|de|le|la|les|l'|un|une)\s*/i, '').trim()
-    if (!nom) return { liste, reponse: 'Dis-moi ce que je dois ajouter.' }
+  if (/^(ajoute|rajoute|note|mets|add|put)\b/.test(t)) {
+    const nom = texte.replace(/^\s*(ajoute|rajoute|note|mets|add|put)\s*(moi)?\s*/i, '').replace(/\s*((a|à) (ma|la) liste|(to|on|in) (my|the) list).*$/i, '')
+      .replace(/^(du|de la|de l'|des|de|le|la|les|l'|un|une|some|the|an|a)\s+/i, '').replace(/^(de l'|l')/i, '').trim()
+    if (!nom) return { liste, reponse: T('iaL.quoiAjouter') }
     const nouveau = { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix: null, fait: false }
-    return { liste: [...liste, nouveau], reponse: `C'est noté : ${nouveau.nom}.` }
+    return { liste: [...liste, nouveau], reponse: T('iaL.note', { nom: nouveau.nom }) }
   }
 
-  if (/(trouve|achete|pris|coche|eu )/.test(t)) {
+  if (/(trouve|achete|pris|coche|eu |found|bought|got|tick)/.test(t)) {
     let it = meilleurArticle(texte, liste)
     let base = liste
     if (!it) {
       // Article absent : on l'ajoute directement, déjà trouvé
-      const m = texte.match(/(?:trouv[ée]|achet[ée]|pris|coch[ée]?)\s+(?:les?|la|l'|des|du|de la|un|une)?\s*(.+?)(?:\s+(?:a|à|pour)\s+\d.*)?$/i)
+      const m = texte.match(/(?:trouv[ée]|achet[ée]|pris|coch[ée]?|found|bought|got|ticked?)\s+(?:les?|la|l'|des|du|de la|un|une|the|some|an|a)?\s*(.+?)(?:\s+(?:a|à|pour|for|at)\s+\d.*)?$/i)
       const nom = (m ? m[1] : 'Article').trim()
       it = { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix: null, fait: false }
       base = [...liste, it]
@@ -167,12 +180,12 @@ export function assistantListe(texte, liste, budget, boutiques = []) {
     const prochaine = cats.length ? boutiques.find(b => b.categorie === cats[0]) : null
     return {
       liste: maj,
-      reponse: `${it.nom} coché${montant ? ' · ' + fmtMoney(montant) : ''}. Tu as dépensé ${fmtMoney(depense)} sur ${fmtMoney(budget)}, il te reste ${fmtMoney(reste)}.` + (restants.length ? ` Il te reste à trouver : ${restants.map(r => r.nom.toLowerCase()).join(', ')}.` : ' Tu as tout trouvé !'),
+      reponse: T('iaL.coche', { nom: it.nom, m: montant ? ' · ' + fmtMoney(montant) : '', d: fmtMoney(depense), b: fmtMoney(budget), r: fmtMoney(reste) }) + encore(restants),
       boutique: prochaine,
     }
   }
 
-  return { liste, reponse: 'Essaie : « j\'ai trouvé les chaussures à 8 000 », « ajoute du savon » ou « combien il me reste ? »' }
+  return { liste, reponse: T('iaL.essaie') }
 }
 
 /** Boutiques suggérées pour un article de la liste */
@@ -211,9 +224,9 @@ export function sectionsIA({ sections, activites = [], interets = {}, boutiques 
 
 /** Contexte envoyé à l'agent : catalogue, repères, position, liste, budget, coups de cœur, derniers échanges.
  *  Les distances sont calculées côté serveur par les outils, à partir des positions. */
-export function contexteIA({ message, boutiques, lieux = [], position, liste = [], budget = 0, moto, coeursDe = () => ({ affiches: 0 }), historique = [] }) {
+export function contexteIA({ message, boutiques, lieux = [], position, liste = [], budget = 0, moto, coeursDe = () => ({ affiches: 0 }), historique = [], langue = 'fr' }) {
   return {
-    message,
+    message, langue,
     position: position || null,
     boutiques: boutiques.map(b => ({
       id: b.id, nom: b.nom, categorie: b.categorie, gros: !!b.gros, verifiee: !!b.verifiee, pos: b.pos,
@@ -276,9 +289,9 @@ export function appliquerOperations(liste, operations = []) {
 }
 
 /** Phrase exacte sur le budget, calculée par l'app (jamais par le modèle) */
-export function phraseBudget(liste, budget) {
+export function phraseBudget(liste, budget, langue = 'fr') {
   const { depense, reste } = bilan(liste, budget)
   return reste >= 0
-    ? `Tu as dépensé ${fmtMoney(depense)} francs. Il te reste ${fmtMoney(reste)} francs.`
-    : `Tu as dépensé ${fmtMoney(depense)} francs : tu dépasses ton budget de ${fmtMoney(-reste)} francs.`
+    ? traduire(langue, 'iaL.budgetOk', { d: fmtMoney(depense), r: fmtMoney(reste) })
+    : traduire(langue, 'iaL.budgetDepasse', { d: fmtMoney(depense), r: fmtMoney(-reste) })
 }

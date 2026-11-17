@@ -4,6 +4,7 @@ import {
   BagIcon, StorefrontIcon, HeartIcon, ChurchIcon, BankIcon, BooksIcon, PillIcon, MotorcycleIcon, ToiletIcon,
   DeviceMobileIcon, DropIcon, BuildingsIcon, MapPinIcon, ThumbsUpIcon, BowlFoodIcon, HairDryerIcon, MaskHappyIcon, NeedleIcon, WarehouseIcon, MagicWandIcon, MicrophoneIcon, ListChecksIcon,
 } from '@phosphor-icons/react'
+import { useApp } from '../store'
 
 export const ICONES = {
   'Pagnes wax': DressIcon, Tissus: NeedleIcon, Alimentation: BowlFoodIcon, 'Mèches et coiffure': HairDryerIcon, Artisanat: MaskHappyIcon, 'Tourisme et souvenirs': MaskHappyIcon, 'Alimentation générale': BowlFoodIcon, Grossistes: WarehouseIcon, 'Pour toi': MagicWandIcon, Épices: PepperIcon, Friperie: TShirtIcon, Chaussures: SneakerIcon,
@@ -60,9 +61,10 @@ export function Wax({ image, className = '', children, style }) {
 
 /** Nombre de coups de cœur affichés (pouces levés − pouces baissés, jamais négatif) */
 export function Coeurs({ n, className = '' }) {
+  const { t } = useApp()
   return n > 0
     ? <span className={'inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white text-[#137A52] text-[11px] font-bold ' + className}><ThumbsUpIcon size={13} weight="fill" />{n}</span>
-    : <span className={'inline-flex items-center h-6 px-2 rounded-full bg-white/90 text-muted text-[11px] font-semibold ' + className}>Pas encore de coup de cœur</span>
+    : <span className={'inline-flex items-center h-6 px-2 rounded-full bg-white/90 text-muted text-[11px] font-semibold ' + className}>{t('coeurs.aucun')}</span>
 }
 
 /** Jauge circulaire (pourcentage 0–100) */

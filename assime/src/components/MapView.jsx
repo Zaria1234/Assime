@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { MARCHE } from '../lib/geo'
 import { Emoji, teinte, ICONES } from './art'
+import { useApp } from '../store'
 
 const SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 const PLAN = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -48,8 +49,8 @@ const meIcon = L.divIcon({
   html: '<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#0E9F8E" opacity=".2"/><circle cx="20" cy="20" r="8" fill="#0E9F8E" stroke="#fff" stroke-width="3"/></svg>',
   iconSize: [40, 40], iconAnchor: [20, 20],
 })
-// Ma moto : rond blanc avec l'icône moto, nom toujours visible
-const motoIcon = () => rond({ cat: 'Parking', nom: 'Ma moto', nomVisible: true })
+// Point de départ du trajet : rond blanc avec l'icône moto, nom toujours visible
+const motoIcon = nom => rond({ cat: 'Parking', nom, nomVisible: true })
 
 // ---------- Noms qui se chevauchent : on garde le plus important, on masque l'autre ----------
 let toile = null
@@ -90,9 +91,28 @@ function arrangerNoms(m, items) {
   })
 }
 
+/** Cadre la carte sur un point (au zoom donné) ou sur un ensemble de points */
+function cadrer(m, f, zoom) {
+  if (f.length > 1) m.fitBounds(f, { paddingTopLeft: [40, 110], paddingBottomRight: [40, 290], maxZoom: 19 }) // laisse la place au bandeau et à la carte du bas
+  else m.setView(f[0], zoom)
+}
+
+/** Rond blanc avec une cible : recentre la carte (controle = la même ref passée à MapView) */
+export function BoutonRecentrer({ controle }) {
+  const { t } = useApp()
+  return (
+    <button type="button" onClick={() => controle.current?.recentrer()} aria-label={t('carte.recentrer')} title={t('carte.recentrer')}
+      className="w-12 h-12 rounded-full bg-white border border-line text-ink flex items-center justify-center shadow-[0_6px_16px_-8px_rgba(22,24,29,.5)]">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      </svg>
+    </button>
+  )
+}
+
 export default function MapView({
   center = MARCHE, zoom = 18, moi, moto, trajet = [], fantome = [], route = [],
-  boutiques = [], lieux = [], arrets = [], selection, onBoutique, onClick, fit, className = '', showToggle = true, togglePos = 'right-3 bottom-6',
+  boutiques = [], lieux = [], arrets = [], selection, onBoutique, onClick, fit, recadrer = 0, controle, className = '', showToggle = true, togglePos = 'right-3 bottom-6',
 }) {
   const el = useRef(null)
   const map = useRef(null)
@@ -100,6 +120,7 @@ export default function MapView({
   const etiquettes = useRef([])
   const [mode, setMode] = useState('plan')
   const [credits, setCredits] = useState(false)
+  const { t } = useApp()
 
   // Création de la carte
   useEffect(() => {
@@ -162,30 +183,50 @@ export default function MapView({
       items.push({ mk, t: grand ? 44 : 32, nom: b.nom, prio: grand ? 1000 : 10 + (b.coeurs || 0), fixe: grand, coeurs: b.coeurs })
       if (onBoutique) mk.on('click', () => onBoutique(b))
     })
-    arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(echappe(a.nom), { direction: 'top', className: 'map-pill' }).addTo(g))
-    if (moto) items.push({ mk: L.marker(moto, { icon: motoIcon(), zIndexOffset: 900, title: 'Ma moto' }).addTo(g), t: 32, nom: 'Ma moto', prio: 900, fixe: true })
+    arrets.forEach((a, i) => L.marker(a.pos, { icon: L.divIcon({ className: '', html: `<div style="width:24px;height:24px;border-radius:50%;background:#fff;color:#16181D;border:2px solid #16181D;font:700 12px Inter,sans-serif;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }) }).bindTooltip(echappe(t('trajet.arret', { n: i + 1 })), { direction: 'top', className: 'map-pill' }).addTo(g))
+    const depart = t('carte.depart')
+    if (moto) items.push({ mk: L.marker(moto, { icon: motoIcon(depart), zIndexOffset: 900, title: depart }).addTo(g), t: 32, nom: depart, prio: 900, fixe: true })
     if (moi) items.push({ mk: L.marker(moi, { icon: meIcon, interactive: false, zIndexOffset: 1000 }).addTo(g), t: 20, nom: '', prio: 0 })
     etiquettes.current = items
     arrangerNoms(map.current, items)
-  }, [moi, moto, trajet, fantome, route, boutiques, lieux, arrets, selection, onBoutique])
+  }, [moi, moto, trajet, fantome, route, boutiques, lieux, arrets, selection, onBoutique, t])
 
-  // Cadrage
+  // Cadrage : UNE seule fois, au premier cadre connu (le GPS bouge sans arrêt : on ne touche plus ensuite
+  // au zoom ni à la position de l'utilisateur). On recadre seulement si la page le demande (recadrer change,
+  // ex. au démarrage d'un guidage) ou si l'utilisateur touche « Recentrer ».
+  const cadre = useRef({ fait: false, fit: null, moi: null })
   const fitKey = fit ? JSON.stringify(fit) : ''
   useEffect(() => {
-    if (fit && fit.length > 1) map.current.fitBounds(fit, { paddingTopLeft: [40, 110], paddingBottomRight: [40, 290], maxZoom: 19 }) // laisse la place au bandeau et à la carte du bas
-    else if (fit && fit.length === 1) map.current.setView(fit[0], 19)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey])
+    cadre.current.fit = fit && fit.length ? fit : null
+    cadre.current.moi = moi || null
+    if (cadre.current.fait || !fit?.length) return
+    cadrer(map.current, fit, 19)
+    cadre.current.fait = true
+  }, [fitKey, moi]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (recadrer && cadre.current.fit) { cadrer(map.current, cadre.current.fit, 19); cadre.current.fait = true }
+  }, [recadrer])
+  // Bouton « Recentrer » (rendu par la page, voir BoutonRecentrer) : revient sur le cadre de la page, en gardant le zoom choisi
+  useEffect(() => {
+    if (!controle) return
+    controle.current = {
+      recentrer: () => {
+        const m = map.current, f = cadre.current.fit || (cadre.current.moi ? [cadre.current.moi] : null)
+        if (m && f) cadrer(m, f, m.getZoom())
+      },
+    }
+    return () => { controle.current = null }
+  }, [controle])
 
   return (
     <div className={(/\babsolute\b/.test(className) ? '' : 'relative ') + className}>
       <div ref={el} className="absolute inset-0" />
-      <button type="button" onClick={() => setCredits(c => !c)} aria-label="Crédits de la carte" className="absolute left-2 bottom-2 z-[450] w-6 h-6 rounded-full bg-white/80 text-[11px] font-bold text-muted">i</button>
-      {credits && <div className="absolute left-2 bottom-9 z-[450] bg-white rounded-lg px-2 py-1 text-[10px] text-muted shadow">Carte : © Esri, © OpenStreetMap · Leaflet</div>}
+      <button type="button" onClick={() => setCredits(c => !c)} aria-label={t('carte.credits')} className="absolute left-2 bottom-2 z-[450] w-6 h-6 rounded-full bg-white/80 text-[11px] font-bold text-muted">i</button>
+      {credits && <div className="absolute left-2 bottom-9 z-[450] bg-white rounded-lg px-2 py-1 text-[10px] text-muted shadow">{t('carte.creditsTexte')}</div>}
       {showToggle && (
         <div className={'absolute z-[500] flex overflow-hidden rounded-full shadow-md text-xs font-semibold ' + togglePos}>
-          <button type="button" onClick={() => setMode('sat')} className={'px-3 py-2 ' + (mode === 'sat' ? 'bg-brand text-white' : 'bg-white text-ink')}>Satellite</button>
-          <button type="button" onClick={() => setMode('plan')} className={'px-3 py-2 ' + (mode === 'plan' ? 'bg-brand text-white' : 'bg-white text-ink')}>Plan</button>
+          <button type="button" onClick={() => setMode('sat')} className={'px-3 py-2 ' + (mode === 'sat' ? 'bg-brand text-white' : 'bg-white text-ink')} aria-pressed={mode === 'sat'}>{t('carte.satellite')}</button>
+          <button type="button" onClick={() => setMode('plan')} className={'px-3 py-2 ' + (mode === 'plan' ? 'bg-brand text-white' : 'bg-white text-ink')} aria-pressed={mode === 'plan'}>{t('carte.plan')}</button>
         </div>
       )}
     </div>

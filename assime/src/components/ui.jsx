@@ -39,10 +39,11 @@ export const SearchIcon = ({ size = 20 }) => <Icon size={size}><circle cx="11" c
 export const MicIcon = ({ size = 22 }) => <Icon size={size}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></Icon>
 export const UserIcon = ({ size = 22 }) => <Icon size={size}><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></Icon>
 
-export function BackButton({ to, label = 'Retour' }) {
+export function BackButton({ to, label }) {
   const nav = useNavigate()
+  const { t } = useApp()
   return (
-    <button type="button" aria-label={label} onClick={() => (to ? nav(to) : nav(-1))} className="w-11 h-11 rounded-full border border-line flex items-center justify-center shrink-0 bg-white shadow-sm">
+    <button type="button" aria-label={label || t('commun.retour')} onClick={() => (to ? nav(to) : nav(-1))} className="w-11 h-11 rounded-full border border-line flex items-center justify-center shrink-0 bg-white shadow-sm">
       <Icon d={I.back} size={20} />
     </button>
   )
@@ -62,24 +63,24 @@ export function TopBar({ title, sub, back, right }) {
 }
 
 export function BottomNav() {
-  const { user } = useApp()
+  const { user, t } = useApp()
   const vendeur = user?.role === 'vendeur'
   const tabs = [
-    { to: '/carte', label: 'Carte', icon: <Icon d={I.map} /> },
-    { to: '/explorer', label: 'Explorer', icon: <Icon><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></Icon> },
-    { to: '/liste', label: 'Ma liste', icon: <Icon><rect x="5" y="3" width="14" height="18" rx="2" /><path d={I.list} /></Icon> },
+    { to: '/carte', label: t('nav.carte'), icon: <Icon d={I.map} /> },
+    { to: '/explorer', label: t('nav.explorer'), icon: <Icon><circle cx="12" cy="12" r="9" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></Icon> },
+    { to: '/liste', label: t('nav.liste'), icon: <Icon><rect x="5" y="3" width="14" height="18" rx="2" /><path d={I.list} /></Icon> },
     vendeur
-      ? { to: '/vendeur', label: 'Ma boutique', icon: <Icon d={I.shop} /> }
-      : { to: '/missions', label: 'Missions', icon: <Icon d={I.star} /> },
-    { to: '/profil', label: 'Profil', icon: <UserIcon /> },
+      ? { to: '/vendeur', label: t('nav.boutique'), icon: <Icon d={I.shop} /> }
+      : { to: '/missions', label: t('nav.missions'), icon: <Icon d={I.star} /> },
+    { to: '/profil', label: t('nav.profil'), icon: <UserIcon /> },
   ]
   return (
     <div className="shrink-0 px-4 pt-2 pb-[max(14px,env(safe-area-inset-bottom))] bg-transparent">
-      <nav aria-label="Navigation principale" className="bg-ink rounded-full p-1.5 flex items-center justify-between shadow-[0_16px_30px_-12px_rgba(22,24,29,.6)]">
-        {tabs.map(t => (
-          <NavLink key={t.to} to={t.to} aria-label={t.label}
+      <nav aria-label={t('nav.aria')} className="bg-ink rounded-full p-1.5 flex items-center justify-between shadow-[0_16px_30px_-12px_rgba(22,24,29,.6)]">
+        {tabs.map(o => (
+          <NavLink key={o.to} to={o.to} aria-label={o.label}
             className={({ isActive }) => 'h-12 rounded-full flex items-center justify-center gap-2 no-underline transition-all ' + (isActive ? 'bg-white text-ink px-4 text-[13px] font-bold' : 'text-white/60 w-12 hover:text-white')}>
-            {({ isActive }) => (<>{t.icon}{isActive && <span>{t.label}</span>}</>)}
+            {({ isActive }) => (<>{o.icon}{isActive && <span>{o.label}</span>}</>)}
           </NavLink>
         ))}
       </nav>
@@ -111,7 +112,7 @@ export function Banner({ titre, sous, icon = I.turnLeft, right }) {
 
 /** Laisser un coup de cœur après une visite : pouce levé ou pouce baissé, sans texte. */
 export function VoteCoeur({ boutiqueId, compact = false }) {
-  const { voter, mesVotes, coeursDe } = useApp()
+  const { voter, mesVotes, coeursDe, t } = useApp()
   const vote = mesVotes[boutiqueId]
   const n = coeursDe(boutiqueId).affiches
   const bouton = (sens, label, path) => (
@@ -124,27 +125,25 @@ export function VoteCoeur({ boutiqueId, compact = false }) {
   return (
     <div className={'rounded-[22px] bg-white border border-line flex items-center gap-4 ' + (compact ? 'p-3' : 'p-4')}>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-[15px]">Coup de cœur</div>
+        <div className="font-semibold text-[15px]">{t('vote.titre')}</div>
         <div className="text-[12px] text-muted mt-1 leading-snug">
-          {vote === 'moins' ? 'Merci. Ton avis va seulement au vendeur, pour qu\'il s\'améliore.'
-            : vote === 'plus' ? 'Merci ! Ton pouce est visible sur la carte.'
-            : n > 0 ? `${n} visiteur${n > 1 ? 's ont' : ' a'} aimé. Et toi ?` : 'Tu es passé·e ici ? Donne ton avis.'}
+          {vote === 'moins' ? t('vote.moins') : vote === 'plus' ? t('vote.plus') : n > 0 ? t('vote.n', { n }) : t('vote.invite')}
         </div>
       </div>
-      {bouton('plus', "J'ai aimé", pouce)}
-      {bouton('moins', "Je n'ai pas aimé", pouce)}
+      {bouton('plus', t('vote.aime'), pouce)}
+      {bouton('moins', t('vote.pasAime'), pouce)}
     </div>
   )
 }
 
 /** État des données : sur le téléphone, en ligne (Supabase), envoi en cours ou erreur */
 export function EtatServeur() {
-  const { serveur } = useApp()
+  const { serveur, t } = useApp()
   const etats = {
-    local: ['#6E7280', 'Données sur ce téléphone', 'Tout reste sur ce téléphone'],
-    connexion: ['#A86A00', 'Connexion à la base…', 'Un instant'],
-    synchro: ['#137A52', serveur.envoi ? 'Envoi en cours…' : serveur.message || 'Synchronisé en ligne', 'Boutiques, photos et coups de cœur partagés'],
-    erreur: ['#B42318', 'Hors ligne', "La base ne répond pas : l'app continue sur le téléphone"],
+    local: ['#6E7280', t('etat.local'), t('etat.localDetail')],
+    connexion: ['#A86A00', t('etat.connexion'), t('etat.connexionDetail')],
+    synchro: ['#137A52', serveur.envoi ? t('etat.envoi') : serveur.message ? t(serveur.message) : t('etat.synchro'), t('etat.synchroDetail')],
+    erreur: ['#B42318', t('etat.erreur'), t('etat.erreurDetail')],
   }
   const [couleur, titre, detail] = etats[serveur.etat] || etats.local
   return (
@@ -152,7 +151,7 @@ export function EtatServeur() {
       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: couleur }} />
       <span className="flex-1 min-w-0">
         <b className="block text-sm">{titre}</b>
-        <span className="block text-xs text-muted truncate">{serveur.erreur && serveur.etat === 'synchro' ? serveur.erreur : detail}</span>
+        <span className="block text-xs text-muted truncate">{serveur.erreur && serveur.etat === 'synchro' ? t(serveur.erreur) : detail}</span>
       </span>
     </div>
   )

@@ -14,7 +14,7 @@ Règles visuelles de l'app. À respecter pour que tous les écrans restent cohé
 
 | Rôle | Couleur | Utilisation |
 | --- | --- | --- |
-| Vert Assimé | `#176B52` | Logo, micro, position et trajet, « Poursuivre », accueil et connexion |
+| Vert Assimé | `#176B52` | Logo, micro, position et trajet, « Continuer », accueil et connexion |
 | Vert clair | `#E6F4EC` | Fonds des boutiques sans photo, messages de confirmation |
 | Orange | `#F5A623` | **Action principale** uniquement (« Enregistrer mon trajet », « M'y emmener », « Créer mon compte »), ta position |
 | Encre | `#16181D` | Textes, barre de navigation, filtres sélectionnés |
@@ -71,6 +71,6 @@ Les correspondances sont dans `src/components/art.jsx` (`ICONES`, `TEINTE_DE`).
 
 - Boutiques : **point violet**, avec le nombre de 👍 à côté.
 - Repères : **rond blanc cerclé de violet**.
-- Toi : **point orange**. Ta moto : pilule noire « Ma moto ».
+- Toi : **point orange**. Point de départ du trajet : rond blanc avec l'icône moto et le nom « Départ » (« Start » en anglais).
 - Trajet : **vert**. Itinéraire de guidage : **orange**.
 - Si la carte ne charge pas (pas de réseau), le fond reste **blanc**.

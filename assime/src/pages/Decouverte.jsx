@@ -7,7 +7,9 @@ import { useApp } from '../store'
 import { Screen, Icon, I } from '../components/ui'
 import { GlassIcon } from '../components/art'
 import { Bienvenue } from './Entree'
+import { LANGUES } from '../i18n'
 
+// « Va où tu veux » : dessin seul (chemin vert, départ et arrivée), sans icône.
 // Dessins sobres : gris très clair, traits fins, chemin vert ; les icônes sont des tuiles GlassIcon posées dessus
 const VERT = '#176B52', GRIS = '#F2F2F4', GRIS2 = '#E6E6EA', TRAIT = '#C9C9D1'
 const L = 320, H = 220 // boîte de dessin, mise à l'échelle de l'écran
@@ -49,9 +51,6 @@ const IlluChemin = () => (
       <circle cx="110" cy="206" r="7" fill="#fff" stroke="#9A9AA5" strokeWidth="2" />
       <circle cx="210" cy="44" r="9" fill={VERT} stroke="#fff" strokeWidth="3" />
     </Dessin>
-    <Tuile x={66} y={192} cat="Parking" />
-    <Tuile x={254} y={48} cat="Sacs" />
-    <Tuile x={60} y={65} cat="Pharmacie" />
   </>
 )
 const IlluRecherche = () => (
@@ -125,23 +124,17 @@ const IlluVitrine = () => (
 )
 
 // « : » et « ? » gardent leur espace insécable pour ne jamais se retrouver seuls en début de ligne
-const SLIDES = [
-  { titre: 'Bienvenue à Asigamé', texte: "Assimé t'aide à te repérer dans le Grand Marché, dans ta langue.", Illu: IlluMarche },
-  { titre: 'Va où tu veux', texte: "Une boutique, la sortie, ta moto : l'app te guide d'un point à un autre.", Illu: IlluChemin },
-  { titre: 'Trouve la bonne boutique', texte: "Cherche un article, compare, et laisse-toi guider jusqu'au stand.", Illu: IlluRecherche },
-  { titre: "Parle à l'IA", texte: 'Dis ce que tu cherches : elle trouve, compare et te montre le chemin.', Illu: IlluVoix },
-  { titre: 'Ta liste, ton budget', texte: "Coche tes achats à la voix, l'app calcule ce qu'il te reste.", Illu: IlluListe },
-  { titre: 'Tu vends au marché ?', texte: 'Place ta boutique sur la carte pour que les clients te trouvent.', Illu: IlluVitrine },
-]
-const ACCUEIL = { titre: 'Ne te perds plus à Asigamé', accueil: true }
+// Textes dans src/i18n.js : decouverte.s1.titre, decouverte.s1.texte…
+const SLIDES = [IlluMarche, IlluChemin, IlluRecherche, IlluVoix, IlluListe, IlluVitrine].map((Illu, i) => ({ id: 's' + (i + 1), Illu }))
+const ACCUEIL = { id: 'accueil', accueil: true }
 
 export default function Decouverte() {
   const nav = useNavigate()
   const { state } = useLocation()
-  const { user } = useApp()
+  const { user, t, langue, setLangue } = useApp()
   // Déjà connecté (venu de Profil → « Découvrir Assimé ») : les 6 slides seulement, sans les boutons de compte
   const connecte = !!user?.verifie
-  const slides = connecte ? SLIDES : [...SLIDES, ACCUEIL]
+  const slides = (connecte ? SLIDES : [...SLIDES, ACCUEIL]).map(x => (x.accueil ? { ...x, titre: t('accueil.avant') + ' ' + t('accueil.mot') + ' ' + t('accueil.apres') + ' Asigamé' } : { ...x, titre: t('decouverte.' + x.id + '.titre'), texte: t('decouverte.' + x.id + '.texte') }))
   const N = slides.length
   const [index, setIndex] = useState(0)
   const [glisse, setGlisse] = useState(0) // déplacement du doigt en cours, en pixels
@@ -216,15 +209,15 @@ export default function Decouverte() {
   return (
     <Screen fond="#FFFFFF">
       <div className="flex-1 min-h-0 relative">
-        <section ref={zone} aria-roledescription="carrousel" aria-label="Découvrir Assimé"
+        <section ref={zone} aria-roledescription="carrousel" aria-label={t('decouverte.aria')}
           className="absolute inset-0 overflow-hidden select-none" style={{ touchAction: 'pan-y' }}
           onPointerDown={debut} onPointerMove={bouge} onPointerUp={fin} onPointerCancel={fin} onPointerLeave={fin} onClickCapture={clicApresSwipe}>
           <div className={'flex h-full ' + (glisse ? '' : 'dec-piste')} aria-live="polite"
             style={{ transform: `translateX(calc(${-index * 100}% + ${glisse}px))` }}>
-            {slides.map(({ titre, texte, Illu, accueil }, i) => {
+            {slides.map(({ id, titre, texte, Illu, accueil }, i) => {
               const actif = i === index
               return (
-                <div key={titre} role="group" aria-roledescription="slide" aria-label={`${i + 1} sur ${N}`} aria-hidden={!actif} inert={!actif}
+                <div key={id} role="group" aria-roledescription="slide" aria-label={t('decouverte.slide', { i: i + 1, n: N })} aria-hidden={!actif} inert={!actif}
                   className="w-full h-full shrink-0">
                   {accueil ? <div className="h-full flex flex-col bg-white"><Bienvenue /></div> : (
                     // l'en-tête (68 px) et les boutons du bas (168 px) sont posés par-dessus
@@ -252,17 +245,25 @@ export default function Decouverte() {
               <div className="w-10 h-10 rounded-[14px] bg-brand flex items-center justify-center">
                 <Icon size={22} stroke="#fff" width={2.4}><path d={I.pin} /><circle cx="12" cy="9" r="2.5" /></Icon>
               </div>
-              <span className="h-display text-xl flex-1">Assimé</span>
-              <button type="button" onClick={() => aller(N - 1)} aria-label="Passer : aller à la dernière étape"
+              <span className="h-display text-xl flex-1 min-w-0 truncate max-[379px]:sr-only">Assimé</span>
+              <span className="max-[379px]:flex-1" />
+              {/* Langue : tout l'écran change tout de suite */}
+              <div role="group" aria-label={t('commun.langue')} className="flex rounded-full bg-[#F2F2F4] p-0.5 pointer-events-auto">
+                {LANGUES.map(l => (
+                  <button key={l.id} type="button" onClick={() => setLangue(l.id)} aria-pressed={langue === l.id} aria-label={l.nom} lang={l.id === 'ewe' ? 'ee' : l.id}
+                    className={'h-9 px-2.5 rounded-full text-[12px] font-bold ' + (langue === l.id ? 'bg-white text-brand shadow-sm' : 'text-[#5B605C]')}>{l.court}</button>
+                ))}
+              </div>
+              <button type="button" onClick={() => aller(N - 1)} aria-label={t('decouverte.passerAria')}
                 className={'h-11 px-3 -mr-3 rounded-full text-[15px] font-semibold text-[#3A3F4B] pointer-events-auto ' + (dernier ? 'invisible' : '')}>
-                Passer
+                {t('decouverte.passer')}
               </button>
             </header>
 
             <footer className="absolute inset-x-0 bottom-0 px-6 pt-1 pb-5 pointer-events-none">
-              <div className="flex items-center justify-center pointer-events-auto" role="group" aria-label="Progression">
+              <div className="flex items-center justify-center pointer-events-auto" role="group" aria-label={t('decouverte.progression')}>
                 {slides.map((s, i) => (
-                  <button key={s.titre} type="button" onClick={() => aller(i)} aria-label={`Étape ${i + 1} sur ${N} : ${s.titre}`}
+                  <button key={s.id} type="button" onClick={() => aller(i)} aria-label={t('decouverte.etape', { i: i + 1, n: N, titre: s.titre })}
                     aria-current={i === index ? 'step' : undefined} className="h-8 px-1 flex items-center">
                     <span className={'block h-2 rounded-full transition-all duration-300 ' + (i === index ? 'w-6 bg-brand' : 'w-2 bg-[#C9C9D1]')} />
                   </button>
@@ -270,11 +271,11 @@ export default function Decouverte() {
               </div>
               <div className="pointer-events-auto">
                 {connecte ? (
-                  <button type="button" onClick={() => nav(state?.retour || '/', { replace: true })} className="btn btn-main w-full h-[52px] mt-2">Fermer</button>
+                  <button type="button" onClick={() => nav(state?.retour || '/', { replace: true })} className="btn btn-main w-full h-[52px] mt-2">{t('commun.fermer')}</button>
                 ) : (
                   <>
-                    <Link to="/inscription" className="btn btn-main w-full h-[52px] mt-2">Créer un compte</Link>
-                    <Link to="/connexion" className="flex items-center justify-center h-11 mt-1 text-[15px] font-semibold text-ink underline underline-offset-4">J'ai déjà un compte</Link>
+                    <Link to="/inscription" className="btn btn-main w-full h-[52px] mt-2">{t('decouverte.creer')}</Link>
+                    <Link to="/connexion" className="flex items-center justify-center h-11 mt-1 text-[15px] font-semibold text-ink underline underline-offset-4">{t('decouverte.deja')}</Link>
                   </>
                 )}
               </div>

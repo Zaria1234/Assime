@@ -69,7 +69,7 @@ Tout passe par `const { … } = useApp()`. Chaque valeur persistée a une clé `
 - Le GPS est suivi en continu (`navigator.geolocation.watchPosition`).
 - Un point n'est gardé que si la précision est **≤ 25 m** et qu'il est à **≥ 3 m** du précédent (`keepPoint`).
 - Le **premier point** gardé devient **la moto**.
-- **Marquer un arrêt** pose un repère numéroté et **met en pause** le tracé. Plus aucun point n'est ajouté jusqu'à « Poursuivre ».
+- **Marquer un arrêt** pose un repère numéroté et **met en pause** le tracé. Plus aucun point n'est ajouté jusqu'à « Continuer ». « Arrêter » met aussi en pause, sans repère ; « Terminer le trajet » l'arrête pour de bon.
 - Sans GPS après 6 s, l'app passe sur une **position simulée** (chip « Position simulée »).
 
 ### Retour à la moto
@@ -102,7 +102,7 @@ Ces fonctions servent de **secours**. La vraie IA est **Gemini** : `demanderIA()
 ### Voix (`lib/voix.js`)
 
 - `ecouter()` : reconnaissance vocale du navigateur, en **français**.
-- `parler()` : synthèse vocale en français. Pour l'éwé et le mina, prévoir des fichiers audio dans `public/audio/ewe/` et `public/audio/mina/`.
+- `parler()` : synthèse vocale en fr-FR (français et éwé) ou en-US (anglais). Pour l'éwé, prévoir des fichiers audio dans `public/audio/ewe/`. Tous les textes de l'écran passent par `t()` (`src/i18n.js`).
 - `dire()` (dans le store) ne parle que si le son est activé. Couper le son arrête immédiatement la voix.
 
 ### Photos (`lib/image.js`)
@@ -118,7 +118,7 @@ Répartition proposée pour une équipe de quatre (à adapter).
 | **Front-end / design** | `pages/`, `components/`, `index.css` | Finitions, animations, accessibilité, nouvelles langues de l'interface |
 | **Carte et terrain** | `lib/geo.js`, `components/MapView.jsx`, `data/demo.js` | Relevé GPS des allées et des stands, plan GeoJSON, vrai itinéraire |
 | **Back-end** | `store.jsx` → Supabase | Comptes, OTP, boutiques, photos, votes, règles de sécurité |
-| **IA et voix** | `api/ia.js`, `lib/ia.js`, `lib/voix.js`, `pages/IA.jsx` | Améliorer les consignes Gemini, enregistrements éwé et mina |
+| **IA et voix** | `api/ia.js`, `lib/ia.js`, `lib/voix.js`, `pages/IA.jsx` | Améliorer les consignes Gemini, enregistrements et traductions éwé |
 
 ## Conventions
 
