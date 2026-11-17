@@ -3,15 +3,21 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../store'
 import { Screen, TopBar, Icon, I } from '../components/ui'
-import { supabase, connexionTelephone, envoyerCodeEmail, verifierCodeEmail } from '../lib/supabase'
+import { supabase, sessionActuelle, normaliserTel, connexionMotDePasse, etatTelephone, inscriptionTelephone, inscriptionEmail, renvoyerCodeInscription, verifierCodeEmail, oubliEmail, oubliTelephone, changerMotDePasse, profilDe } from '../lib/supabase'
 import { LANGUES } from '../i18n'
 
 /** Message affiché à l'écran (traduit) ; le détail technique part dans la console */
-function messageSimple(err, t) {
+export function messageSimple(err, t) {
   console.error('[Assimé] connexion', err)
   if (err?.simple) return t('srv.' + err.simple) === 'srv.' + err.simple ? err.simple : t('srv.' + err.simple)
-  if (/expired|invalid|token/i.test(err?.message || '')) return t('erreur.codeExpire')
-  if (/rate|limit|seconds/i.test(err?.message || '')) return t('erreur.tropDemandes')
+  const m = (err?.code || '') + ' ' + (err?.message || '')
+  if (/invalid_credentials|Invalid login credentials/i.test(m)) return t('erreur.identifiants')
+  if (/user_already_exists|already registered|already been registered/i.test(m)) return t('erreur.dejaInscrit')
+  if (/same_password|should be different/i.test(m)) return t('erreur.mdpIdentique')
+  if (/weak_password|Password should/i.test(m)) return t('erreur.mdpFaible')
+  if (/not authorized|sending|smtp|email_address_invalid/i.test(m)) return t('erreur.envoiEmail')
+  if (/rate|limit|seconds/i.test(m)) return t('erreur.tropDemandes')
+  if (/expired|invalid|token/i.test(m)) return t('erreur.codeExpire')
   return t('erreur.echec')
 }
 
@@ -100,21 +106,71 @@ export function CompteRequis() {
   )
 }
 
-function Telephone({ value, onChange }) {
+
+export function Telephone({ value, onChange, id = 'tel' }) {
   return (
     <div className="flex gap-2.5">
       <div className="h-[52px] px-3.5 rounded-[14px] border border-field bg-white flex items-center font-semibold">+228</div>
-      <input id="tel" type="tel" inputMode="numeric" placeholder="90 00 00 00" value={value} onChange={e => onChange(e.target.value)} className="field flex-1 min-w-0" />
+      <input id={id} type="tel" inputMode="numeric" autoComplete="tel-national" placeholder="90 00 00 00" value={value} onChange={e => onChange(e.target.value)} className="field flex-1 min-w-0" />
     </div>
   )
 }
 
-const emailValide = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim())
+export const emailValide = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim())
+export const telValide = t => t.replace(/\D/g, '').length >= 8
+export const MDP_MIN = 8
 
-/** Choix « Par téléphone » / « Par e-mail » (seulement si la base en ligne est branchée) */
+/** Solidité d'un mot de passe : 0 (vide), 1 faible, 2 moyen, 3 fort */
+export function solidite(m) {
+  if (!m) return 0
+  if (m.length < MDP_MIN) return 1
+  const familles = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter(r => r.test(m)).length
+  if (m.length >= 12 && familles >= 3) return 3
+  return familles >= 2 || m.length >= 12 ? 2 : 1
+}
+
+/** Mode local (sans base en ligne) : le mot de passe n'est jamais gardé en clair, seulement son empreinte */
+export async function empreinte(m) {
+  const octets = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('assime:' + m))
+  return Array.from(new Uint8Array(octets), b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Champ mot de passe : bouton œil, et (option) indication de solidité */
+export function ChampMotDePasse({ id, label, value, onChange, autoComplete = 'new-password', avecSolidite = false, erreur, className = 'mt-4' }) {
+  const { t } = useApp()
+  const [voir, setVoir] = useState(false)
+  const s = solidite(value)
+  const couleurs = ['', 'bg-red-500', 'bg-sun', 'bg-teal']
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="label block mb-1.5">{label}</label>
+      <div className="relative">
+        <input id={id} type={voir ? 'text' : 'password'} autoComplete={autoComplete} className={'field pr-14 ' + (erreur ? '!border-red-600 !border-2' : '')}
+          placeholder={avecSolidite ? t('mdp.ph') : ''} value={value} onChange={e => onChange(e.target.value)} aria-invalid={!!erreur} aria-describedby={erreur ? id + '-err' : avecSolidite ? id + '-sol' : undefined} />
+        <button type="button" onClick={() => setVoir(v => !v)} aria-label={voir ? t('mdp.masquer') : t('mdp.afficher')} aria-pressed={voir}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center text-muted">
+          <Icon size={20}>{voir
+            ? <><path d="M3 3l18 18" /><path d="M10.6 6.1A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.7M6.6 6.6A16.6 16.6 0 0 0 2.5 12S6 18 12 18a9.8 9.8 0 0 0 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>
+            : <><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z" /><circle cx="12" cy="12" r="3" /></>}</Icon>
+        </button>
+      </div>
+      {avecSolidite && value && (
+        <div id={id + '-sol'} className="mt-2" aria-live="polite">
+          <div className="flex gap-1">{[1, 2, 3].map(n => <span key={n} className={'h-1.5 flex-1 rounded-full ' + (s >= n ? couleurs[s] : 'bg-field')} />)}</div>
+          <p className="mt-1 text-xs text-muted">
+            {value.length < MDP_MIN ? t('mdp.tropCourt') : t('mdp.solidite', { niveau: t(['', 'mdp.faible', 'mdp.moyen', 'mdp.fort'][s]) })}
+            {s < 3 && value.length >= MDP_MIN ? ' ' + t('mdp.conseil') : ''}
+          </p>
+        </div>
+      )}
+      {erreur && <p id={id + '-err'} className="mt-1.5 text-[13px] font-semibold text-red-700" role="alert">{erreur}</p>}
+    </div>
+  )
+}
+
+/** Choix « Par téléphone » / « Par e-mail » */
 function Canal({ canal, setCanal }) {
   const { t } = useApp()
-  if (!supabase) return null
   return (
     <div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-[#F2F4F3] mt-4" role="group" aria-label={t('entree.canal')}>
       {[['tel', t('entree.parTel')], ['email', t('entree.parEmail')]].map(([id, x]) => (
@@ -131,7 +187,6 @@ function ChampContact({ canal, tel, setTel, email, setEmail }) {
     <>
       <label htmlFor="email" className="label mt-4 mb-1.5">{t('entree.email')}</label>
       <input id="email" type="email" inputMode="email" autoComplete="email" className="field" placeholder="toi@exemple.com" value={email} onChange={e => setEmail(e.target.value)} />
-      <p className="mt-2 text-xs text-muted">{t('entree.emailAide')}</p>
     </>
   ) : (
     <>
@@ -141,47 +196,74 @@ function ChampContact({ canal, tel, setTel, email, setEmail }) {
   )
 }
 
+/** Inscription par téléphone en attente du code : gardée en mémoire seulement (jamais dans l'adresse ni l'historique) */
+let brouillon = null
+
+/** Après une connexion réussie : profil relu, session ouverte. Renvoie { role, prenom } */
+async function ouvrir({ uid, meta = {}, infos = {}, ouvrirSession }) {
+  const p = await profilDe(uid).catch(() => null)
+  const role = p?.role || infos.role || meta.role || 'acheteur'
+  const prenom = p?.prenom || infos.prenom || meta.prenom || ''
+  ouvrirSession(uid, { prenom, role, tel: p?.telephone || infos.tel || '', email: infos.email || '' })
+  return { role, prenom }
+}
+
+const erreurIdentifiants = () => Object.assign(new Error('Invalid login credentials'), { code: 'invalid_credentials' })
+
 export function Inscription() {
   const nav = useNavigate()
   const { state } = useLocation()
-  const { setUser, reinitialiserDonneesPerso, t } = useApp()
+  const { setUser, reinitialiserDonneesPerso, ouvrirSession, t } = useApp()
   const [canal, setCanal] = useState('tel')
   const [prenom, setPrenom] = useState('')
   const [tel, setTel] = useState('')
   const [email, setEmail] = useState('')
+  const [mdp, setMdp] = useState('')
+  const [mdp2, setMdp2] = useState('')
   // Venu de « Pour vendre, crée d'abord ton compte » : rôle Vendeur déjà choisi
   const [role, setRole] = useState(state?.role === 'vendeur' ? 'vendeur' : 'acheteur')
   const [ok, setOk] = useState(true)
   const [attente, setAttente] = useState(false)
   const [erreur, setErreur] = useState('')
-  const contactOk = canal === 'email' ? emailValide(email) : tel.replace(/\D/g, '').length >= 8
-  const valide = prenom.trim() && contactOk && ok && !attente
+  const contactOk = canal === 'email' ? emailValide(email) : telValide(tel)
+  const differents = mdp2 && mdp !== mdp2
+  const valide = prenom.trim() && contactOk && mdp.length >= MDP_MIN && mdp === mdp2 && ok && !attente
   const envoyer = async e => {
     e.preventDefault()
     if (!valide) return
     const infos = { prenom: prenom.trim(), role }
-    if (!supabase) { // mode local : tout reste sur le téléphone, un nouveau compte part de zéro
-      reinitialiserDonneesPerso()
-      setUser({ ...infos, tel, verifie: false })
-      return nav('/code', { state: { canal: 'local', suite: suiteNouveau(role) } })
+    setAttente(true); setErreur('')
+    try {
+      if (!supabase) { // mode local : tout reste sur le téléphone, un nouveau compte part de zéro
+        const h = await empreinte(mdp)
+        reinitialiserDonneesPerso()
+        setUser({ ...infos, tel: canal === 'tel' ? tel : '', email: canal === 'email' ? email.trim() : '', mdp: h, verifie: false })
+        return nav('/code', { state: { canal: 'local', suite: suiteNouveau(role) } })
+      }
+      if (canal === 'email') {
+        const r = await inscriptionEmail({ email: email.trim(), motDePasse: mdp, ...infos })
+        if (r.uid) { ouvrirSession(r.uid, { ...infos, email: email.trim() }); return nav(suiteNouveau(role), { replace: true }) } // projet sans confirmation d'e-mail
+        return nav('/code', { state: { canal: 'email', email: email.trim(), ...infos } })
+      }
+      brouillon = { telephone: tel, motDePasse: mdp, ...infos }
+      nav('/code', { state: { canal: 'tel', telephone: tel } })
+    } catch (err) {
+      setAttente(false)
+      setErreur(messageSimple(err, t))
     }
-    if (canal === 'email') {
-      setAttente(true); setErreur('')
-      try { await envoyerCodeEmail(email.trim(), infos) } catch (err) { setAttente(false); return setErreur(messageSimple(err, t)) }
-      return nav('/code', { state: { canal: 'email', email: email.trim(), nouveau: true, ...infos } })
-    }
-    nav('/code', { state: { canal: 'tel', telephone: tel, nouveau: true, ...infos } })
   }
   return (
     <Screen fond="#FFFFFF">
-      <form onSubmit={envoyer} className="flex-1 flex flex-col">
+      <form onSubmit={envoyer} className="flex-1 min-h-0 flex flex-col">
         <TopBar title={role === 'vendeur' && state?.role === 'vendeur' ? t('inscription.titreVendeur') : t('inscription.titre')} back="/" />
-        <div className="flex-1 scroll px-6 flex flex-col">
+        <div className="flex-1 min-h-0 scroll no-scrollbar px-6 pb-2 flex flex-col">
           <p className="text-[15px] text-[#2D4A40]">{state?.role === 'vendeur' ? t('inscription.introVendeur') : t('inscription.intro')}</p>
           <Canal canal={canal} setCanal={setCanal} />
           <label htmlFor="prenom" className="label mt-5 mb-1.5">{t('inscription.prenom')}</label>
           <input id="prenom" className="field" placeholder={t('inscription.prenomPh')} value={prenom} onChange={e => setPrenom(e.target.value)} autoComplete="given-name" />
           <ChampContact canal={canal} tel={tel} setTel={setTel} email={email} setEmail={setEmail} />
+          <ChampMotDePasse id="mdp" label={t('mdp.label')} value={mdp} onChange={setMdp} avecSolidite />
+          <ChampMotDePasse id="mdp2" label={t('mdp.confirmer')} value={mdp2} onChange={setMdp2} erreur={differents ? t('mdp.different') : ''} />
           <div className="label mt-5 mb-2">{t('inscription.pourQuoi')}</div>
           <div className="grid grid-cols-2 gap-2.5">
             {[{ id: 'acheteur', x: t('inscription.acheter'), s: t('inscription.acheterSous') }, { id: 'vendeur', x: t('inscription.vendre'), s: t('inscription.vendreSous') }].map(r => (
@@ -197,9 +279,9 @@ export function Inscription() {
           </label>
           {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
         </div>
-        <div className="px-6 pb-7 pt-3">
+        <div className="px-6 pb-6 pt-3">
           <button type="submit" disabled={!valide} className="btn btn-main w-full h-[52px]">{attente ? t('commun.envoi') : t('inscription.recevoir')}</button>
-          <p className="mt-3.5 text-center text-sm text-[#2D4A40]">{t('inscription.deja')} <Link to="/connexion" className="font-semibold text-brand">{t('inscription.meConnecter')}</Link></p>
+          <p className="mt-3 text-center text-sm text-[#2D4A40]">{t('inscription.deja')} <Link to="/connexion" className="font-semibold text-brand">{t('inscription.meConnecter')}</Link></p>
         </div>
       </form>
     </Screen>
@@ -208,45 +290,189 @@ export function Inscription() {
 
 export function Connexion() {
   const nav = useNavigate()
-  const { user, setUser, t } = useApp()
-  const [canal, setCanal] = useState('tel')
+  const { user, setUser, ouvrirSession, continuerSansCompte, t } = useApp()
+  const [canal, setCanal] = useState(user?.email ? 'email' : 'tel')
   const [tel, setTel] = useState(user?.tel?.replace(/^228/, '') || '')
   const [email, setEmail] = useState(user?.email || '')
+  const [mdp, setMdp] = useState('')
   const [attente, setAttente] = useState(false)
   const [erreur, setErreur] = useState('')
-  const valide = (canal === 'email' ? emailValide(email) : tel.replace(/\D/g, '').length >= 8) && !attente
+  const contactOk = canal === 'email' ? emailValide(email) : telValide(tel)
+  const valide = contactOk && mdp.length > 0 && !attente
   const envoyer = async e => {
     e.preventDefault()
     if (!valide) return
-    if (!supabase) {
-      if (!user) setUser({ prenom: '', tel, role: 'acheteur', verifie: false })
-      return nav('/code', { state: { canal: 'local', suite: suiteConnexion(user?.role) } })
+    setAttente(true); setErreur('')
+    try {
+      if (!supabase) {
+        // Mode local : le compte est celui du téléphone ; un ancien compte sans mot de passe en crée un
+        const memeContact = !!user && (canal === 'email' ? user.email === email.trim() : !!user.tel && normaliserTel(user.tel) === normaliserTel(tel))
+        if (memeContact && !user.mdp) return nav('/mot-de-passe', { state: { canal, telephone: tel, email: email.trim(), creation: true } })
+        if (!memeContact || user.mdp !== await empreinte(mdp)) throw erreurIdentifiants()
+        setUser({ ...user, verifie: true })
+        return nav(suiteConnexion(user.role), { replace: true })
+      }
+      const { uid, meta } = await connexionMotDePasse(canal === 'email' ? { email: email.trim(), motDePasse: mdp } : { telephone: tel, motDePasse: mdp })
+      const { role } = await ouvrir({ uid, meta, infos: { email: canal === 'email' ? email.trim() : '' }, ouvrirSession })
+      nav(suiteConnexion(role), { replace: true })
+    } catch (err) {
+      if (supabase && canal === 'tel' && /invalid/i.test((err?.code || '') + (err?.message || ''))) {
+        // Compte téléphone créé avant les mots de passe : on lui en fait créer un, avec un code
+        const etat = await etatTelephone(tel).catch(() => null)
+        if (etat?.existe && !etat.motDePasse) return nav('/mot-de-passe', { state: { canal: 'tel', telephone: tel, creation: true } })
+      }
+      if (supabase && canal === 'email' && /not confirmed/i.test(err?.message || '')) {
+        await renvoyerCodeInscription(email.trim()).catch(() => {})
+        return nav('/code', { state: { canal: 'email', email: email.trim(), nonConfirme: true } })
+      }
+      setAttente(false)
+      setErreur(messageSimple(err, t))
     }
-    if (canal === 'email') {
-      setAttente(true); setErreur('')
-      try { await envoyerCodeEmail(email.trim()) } catch (err) { setAttente(false); return setErreur(messageSimple(err, t)) }
-      return nav('/code', { state: { canal: 'email', email: email.trim() } })
-    }
-    nav('/code', { state: { canal: 'tel', telephone: tel } })
   }
   return (
     <Screen fond="#FFFFFF">
-      <form onSubmit={envoyer} className="flex-1 flex flex-col">
+      <form onSubmit={envoyer} className="flex-1 min-h-0 flex flex-col">
         <TopBar title={t('connexion.titre')} back="/" />
-        <div className="flex-1 px-6 flex flex-col">
-          <p className="text-[15px] text-[#2D4A40]">{canal === 'email' ? t('connexion.introEmail') : t('connexion.introTel')} {t('connexion.sansMdp')}</p>
+        <div className="flex-1 min-h-0 scroll no-scrollbar px-6 flex flex-col">
+          <p className="text-[15px] text-[#2D4A40]">{t('connexion.intro')}</p>
           <Canal canal={canal} setCanal={setCanal} />
           <ChampContact canal={canal} tel={tel} setTel={setTel} email={email} setEmail={setEmail} />
+          <ChampMotDePasse id="mdp" label={t('mdp.label')} value={mdp} onChange={setMdp} autoComplete="current-password" />
+          <Link to="/mot-de-passe" state={{ canal, telephone: tel, email }} className="self-end mt-2 py-1 text-sm font-semibold text-brand">{t('connexion.oubli')}</Link>
           {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
-          <button type="submit" disabled={!valide} className="btn btn-main h-[52px] mt-5">{attente ? t('commun.envoi') : canal === 'email' ? t('connexion.codeEmail') : t('connexion.codeSms')}</button>
-          <div className="flex-1" />
-          <p className="text-center text-sm text-[#2D4A40] mb-7">{t('connexion.pasCompte')} <Link to="/inscription" className="font-semibold text-brand">{t('connexion.creer')}</Link></p>
+          <button type="submit" disabled={!valide} className="btn btn-main h-[52px] mt-5">{attente ? t('code.connexion') : t('connexion.bouton')}</button>
+          <div className="flex-1 min-h-6" />
+          <p className="text-center text-sm text-[#2D4A40]">{t('connexion.pasCompte')} <Link to="/inscription" className="font-semibold text-brand">{t('connexion.creer')}</Link></p>
+          <Link to="/carte" onClick={continuerSansCompte} className="text-center text-muted underline font-semibold py-3 mb-3">{t('accueil.sans')}</Link>
         </div>
       </form>
     </Screen>
   )
 }
 
+/** Mot de passe oublié (ou ancien compte sans mot de passe) : code, puis nouveau mot de passe */
+export function MotDePasseOublie() {
+  const nav = useNavigate()
+  const { state } = useLocation()
+  const { user, setUser, ouvrirSession, t } = useApp()
+  const [canal, setCanal] = useState(state?.canal === 'email' ? 'email' : 'tel')
+  const [tel, setTel] = useState(state?.telephone || '')
+  const [email, setEmail] = useState(state?.email || '')
+  const [etape, setEtape] = useState(1)
+  const [code, setCode] = useState('')
+  const [mdp, setMdp] = useState('')
+  const [mdp2, setMdp2] = useState('')
+  const [attente, setAttente] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const contactOk = canal === 'email' ? emailValide(email) : telValide(tel)
+  const differents = mdp2 && mdp !== mdp2
+  const demander = async e => {
+    e.preventDefault()
+    if (!contactOk || attente) return
+    setErreur('')
+    if (supabase && canal === 'email') {
+      setAttente(true)
+      try { await oubliEmail(email.trim()) } catch (err) { setAttente(false); return setErreur(messageSimple(err, t)) }
+      setAttente(false)
+    }
+    setEtape(2) // téléphone : code de démo, rien à envoyer pour l'instant (voir codeSmsValide dans api/compte.js)
+  }
+  const valider = async e => {
+    e.preventDefault()
+    if (code.length < 6 || mdp.length < MDP_MIN || mdp !== mdp2 || attente) return
+    setAttente(true); setErreur('')
+    try {
+      if (!supabase) {
+        const memeContact = !!user && (canal === 'email' ? user.email === email.trim() : !!user.tel && normaliserTel(user.tel) === normaliserTel(tel))
+        if (!memeContact) throw Object.assign(new Error('compte'), { simple: 'Aucun compte avec ce numéro. Crée ton compte.' })
+        setUser({ ...user, mdp: await empreinte(mdp), verifie: true })
+        return nav(suiteConnexion(user.role), { replace: true })
+      }
+      let r
+      if (canal === 'email') {
+        r = await verifierCodeEmail(email.trim(), code, 'recovery')
+        await changerMotDePasse(mdp)
+      } else r = await oubliTelephone({ telephone: tel, code, motDePasse: mdp })
+      const { role } = await ouvrir({ uid: r.uid, meta: r.meta, infos: { email: canal === 'email' ? email.trim() : '' }, ouvrirSession })
+      nav(suiteConnexion(role), { replace: true })
+    } catch (err) {
+      setAttente(false)
+      setErreur(messageSimple(err, t))
+    }
+  }
+  return (
+    <Screen fond="#FFFFFF">
+      <form onSubmit={etape === 1 ? demander : valider} className="flex-1 min-h-0 flex flex-col">
+        <TopBar title={state?.creation ? t('oubli.titreCreation') : t('oubli.titre')} back="/connexion" />
+        <div className="flex-1 min-h-0 scroll no-scrollbar px-6 pb-6 flex flex-col">
+          <p className="text-[15px] text-[#2D4A40]" role={state?.creation ? 'alert' : undefined}>{state?.creation ? t('oubli.creation') : t('oubli.intro')}</p>
+          {etape === 1 ? (
+            <>
+              <Canal canal={canal} setCanal={setCanal} />
+              <ChampContact canal={canal} tel={tel} setTel={setTel} email={email} setEmail={setEmail} />
+              {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+              <button type="submit" disabled={!contactOk || attente} className="btn btn-main h-[52px] mt-5">{attente ? t('commun.envoi') : t('oubli.recevoir')}</button>
+            </>
+          ) : (
+            <>
+              <p className="mt-4 text-[14px] font-semibold">{t('code.envoyeA', { x: canal === 'email' ? email.trim() : '+228 ' + tel })}</p>
+              <label htmlFor="code" className="label mt-4 mb-1.5">{t('code.label')}</label>
+              <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="field text-center font-display text-2xl tracking-[0.4em]" placeholder="••••••" />
+              <p className="mt-2 text-xs text-muted">{canal === 'email' && supabase ? t('oubli.aideEmail') : t('code.aideDemo')}</p>
+              <ChampMotDePasse id="mdp" label={t('oubli.nouveau')} value={mdp} onChange={setMdp} avecSolidite />
+              <ChampMotDePasse id="mdp2" label={t('mdp.confirmer')} value={mdp2} onChange={setMdp2} erreur={differents ? t('mdp.different') : ''} />
+              {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+              <button type="submit" disabled={code.length < 6 || mdp.length < MDP_MIN || mdp !== mdp2 || attente} className="btn btn-main h-[52px] mt-5">{attente ? t('code.connexion') : t('oubli.valider')}</button>
+              <button type="button" onClick={() => { setEtape(1); setCode(''); setErreur('') }} className="mt-3 text-sm text-muted underline">{t('oubli.autre')}</button>
+            </>
+          )}
+        </div>
+      </form>
+    </Screen>
+  )
+}
+
+/** Arrivée par le lien « mot de passe oublié » de l'e-mail : la session est ouverte, on choisit le nouveau mot de passe */
+export function NouveauMotDePasse() {
+  const nav = useNavigate()
+  const { t } = useApp()
+  const [mdp, setMdp] = useState('')
+  const [mdp2, setMdp2] = useState('')
+  const [attente, setAttente] = useState(false)
+  const [expire, setExpire] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const valide = mdp.length >= MDP_MIN && mdp === mdp2 && !attente
+  const envoyer = async e => {
+    e.preventDefault()
+    if (!valide) return
+    setAttente(true); setErreur(''); setExpire(false)
+    try {
+      if (!supabase || !(await sessionActuelle())?.uid) { setAttente(false); return setExpire(true) }
+      await changerMotDePasse(mdp)
+      nav('/carte', { replace: true })
+    } catch (err) {
+      setAttente(false)
+      setErreur(messageSimple(err, t))
+    }
+  }
+  return (
+    <Screen fond="#FFFFFF">
+      <form onSubmit={envoyer} className="flex-1 min-h-0 flex flex-col">
+        <TopBar title={t('oubli.nouveau')} back={false} />
+        <div className="flex-1 min-h-0 scroll no-scrollbar px-6 pb-6 flex flex-col">
+          <ChampMotDePasse id="mdp" label={t('oubli.nouveau')} value={mdp} onChange={setMdp} avecSolidite className="mt-1" />
+          <ChampMotDePasse id="mdp2" label={t('mdp.confirmer')} value={mdp2} onChange={setMdp2} erreur={mdp2 && mdp !== mdp2 ? t('mdp.different') : ''} />
+          {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+          {expire && <p className="mt-3 text-sm text-red-700" role="alert">{t('oubli.lienExpire')} <Link to="/mot-de-passe" state={{ canal: 'email' }} className="font-semibold text-brand underline">{t('oubli.recevoir')}</Link></p>}
+          <button type="submit" disabled={!valide} className="btn btn-main h-[52px] mt-5">{attente ? t('commun.envoi') : t('commun.enregistrer')}</button>
+        </div>
+      </form>
+    </Screen>
+  )
+}
+
+/** Code de vérification de l'inscription (e-mail : vrai code Supabase ; téléphone : code de démo) */
 export function Code() {
   const nav = useNavigate()
   const { state } = useLocation()
@@ -254,8 +480,8 @@ export function Code() {
   const [code, setCode] = useState('')
   const [attente, setAttente] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [info, setInfo] = useState('')
   const canal = state?.canal || 'local'
-  const suite = role => (state?.nouveau ? suiteNouveau(role) : suiteConnexion(role))
   const valider = async e => {
     e.preventDefault()
     if (code.length < 6 || attente) return
@@ -267,19 +493,23 @@ export function Code() {
     setAttente(true); setErreur('')
     try {
       if (canal === 'tel') {
-        const { uid, profil } = await connexionTelephone({ telephone: state.telephone, prenom: state.prenom, role: state.role, code })
-        ouvrirSession(uid, { prenom: profil.prenom, tel: profil.telephone, role: profil.role })
-        return nav(profil.prenom ? suite(profil.role) : '/role', { replace: true, state: { nouveau: !!state?.nouveau } })
+        if (!brouillon) throw Object.assign(new Error('brouillon'), { code: 'brouillon' })
+        const r = await inscriptionTelephone({ ...brouillon, code })
+        const { role } = await ouvrir({ uid: r.uid, meta: r.meta, infos: { prenom: brouillon.prenom, role: brouillon.role, tel: normaliserTel(brouillon.telephone) }, ouvrirSession })
+        brouillon = null
+        return nav(suiteNouveau(role), { replace: true })
       }
-      const { uid, meta } = await verifierCodeEmail(state.email, code)
-      const prenom = state.prenom || meta.prenom || ''
-      const role = state.role || meta.role || 'acheteur'
-      ouvrirSession(uid, { prenom, role, email: state.email })
-      nav(prenom ? suite(role) : '/role', { replace: true, state: { nouveau: !!state?.nouveau } })
+      const r = await verifierCodeEmail(state.email, code, 'signup')
+      const { role, prenom } = await ouvrir({ uid: r.uid, meta: r.meta, infos: { prenom: state.prenom, role: state.role, email: state.email }, ouvrirSession })
+      nav(prenom ? suiteNouveau(role) : '/role', { replace: true, state: { nouveau: true } })
     } catch (err) {
       setAttente(false)
-      setErreur(messageSimple(err, t))
+      setErreur(err?.code === 'brouillon' ? t('code.brouillon') : messageSimple(err, t))
     }
+  }
+  const renvoyer = async () => {
+    setErreur(''); setInfo('')
+    try { await renvoyerCodeInscription(state.email); setInfo(t('code.renvoye')) } catch (err) { setErreur(messageSimple(err, t)) }
   }
   const masque = canal === 'email' ? state?.email
     : '+228 ' + String(state?.telephone || user?.tel || '').replace(/\D/g, '').replace(/^(\d{2})\d+(\d{2})$/, '$1 •• •• $2')
@@ -288,14 +518,17 @@ export function Code() {
       <form onSubmit={valider} className="flex-1 flex flex-col">
         <TopBar title={t('code.titre')} />
         <div className="px-6 flex flex-col">
-          <p className="text-[15px] text-[#2D4A40]">{t('code.envoyeA', { x: masque })}</p>
+          <p className="text-[15px] text-[#2D4A40]">{state?.nonConfirme ? t('erreur.emailNonConfirme') + ' ' : ''}{t('code.envoyeA', { x: masque })}</p>
           <label htmlFor="code" className="label mt-6 mb-2">{t('code.label')}</label>
           <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
             onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             className="field text-center font-display text-3xl tracking-[0.5em] h-16" placeholder="••••••" />
           <p className="mt-3 text-xs text-muted">{canal === 'email' ? t('code.aideEmail') : t('code.aideDemo')}</p>
           {erreur && <p className="mt-3 text-sm text-red-700" role="alert">{erreur}</p>}
+          {info && <p className="mt-3 text-sm text-brand" role="status">{info}</p>}
           <button type="submit" disabled={code.length < 6 || attente} className="btn btn-main h-[52px] mt-6">{attente ? t('code.connexion') : t('commun.valider')}</button>
+          {canal === 'email' && <button type="button" onClick={renvoyer} className="mt-3 py-2 text-sm font-semibold text-brand">{t('code.renvoyer')}</button>}
+          {canal === 'tel' && !brouillon && <Link to="/inscription" className="mt-3 text-center text-sm font-semibold text-brand">{t('inscription.titre')}</Link>}
         </div>
       </form>
     </Screen>

@@ -26,6 +26,9 @@ Règles visuelles de l'app. À respecter pour que tous les écrans restent cohé
 
 Les couleurs sont déclarées une seule fois dans `src/index.css` (`@theme`). Elles s'utilisent en classes Tailwind : `bg-brand`, `text-ink`, `bg-sun`, `bg-lilac`, `bg-yellow`, `border-line`…
 
+### Mode sombre
+Profil → **Apparence** : Clair / Sombre / Automatique (suit le téléphone), gardé dans `assime_apparence`. La classe `sombre` est posée sur `<html>` (dès le chargement par un petit script dans `index.html`, pour éviter un flash blanc). Le bloc `html.sombre` de `src/index.css` redéfinit les couleurs : fond `#111315`, cartes et champs `#1B1E21`, texte `#ECEEF0`, gris `#9BA1AA`, bordures `#2A2E33`. Le fond de carte Leaflet est légèrement assombri (`brightness(.72)`) ; les marqueurs ne changent pas. Le bouton orange garde son texte foncé.
+
 ### Couleur des icônes par catégorie
 
 Icônes **Phosphor** (style duotone) sur tuile blanche. Seule l'icône est colorée :

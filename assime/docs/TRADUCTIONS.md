@@ -10,7 +10,7 @@ Les phrases sont dans `src/i18n.js` (français, anglais) et `src/i18n-ewe.js` (�
 
 Pour corriger une phrase éwé : modifier sa valeur dans `src/i18n-ewe.js` (même clé). Garder les `{variables}` telles quelles.
 
-## 1. Phrases éwé à vérifier (521)
+## 1. Phrases éwé à vérifier (646)
 
 | Clé | Français | English | Éwé proposé | Vérifié ? |
 |---|---|---|---|---|
@@ -112,7 +112,7 @@ Pour corriger une phrase éwé : modifier sa valeur dans `src/i18n-ewe.js` (mêm
 | `code.titre` | Entre le code reçu | Enter the code you received | Ŋlɔ kɔd si nèxɔ | ☐ |
 | `code.envoyeA` | Envoyé à {x} | Sent to {x} | Woɖoe ɖe {x} | ☐ |
 | `code.label` | Code à 6 chiffres | 6-digit code | Kɔd si me xexlẽdzesi 6 le | ☐ |
-| `code.aideEmail` | L'e-mail peut prendre une minute. S'il contient un lien « Log In » au lieu d'un code, touche simplement le lien : tu seras connecté·e. | The email can take a minute. If it contains a « Log In » link instead of a code, just tap the link: you will be signed in. | E-mail la ate ŋu axɔ miniti ɖeka. Ne « Log In » kpeƒe le eme ɖe kɔd teƒe la, zi edzi ko : àge ɖe eme. | ☐ |
+| `code.aideEmail` | Le code arrive par e-mail en une minute environ (regarde aussi les spams). Tu peux aussi toucher le lien de l'e-mail. | The code arrives by email in about a minute (check your spam too). You can also tap the link in the email. | Kɔd la ava e-mail me le miniti ɖeka me (kpɔ spam me hã). Àte ŋu azi e-mail la ƒe kadodo dzi hã. | ☐ |
 | `code.aideDemo` | Version de démonstration : n'importe quel code à 6 chiffres fonctionne. | Demo version: any 6-digit code works. | Ɖeɖefia : kɔd ɖesiaɖe si me xexlẽdzesi 6 le awɔ dɔ. | ☐ |
 | `code.connexion` | Connexion… | Signing in… | Ele ge ɖe eme… | ☐ |
 | `role.titre` | Dis-nous qui tu es | Tell us who you are | Gblɔ ame si nènye na mí | ☐ |
@@ -288,7 +288,7 @@ Pour corriger une phrase éwé : modifier sa valeur dans `src/i18n-ewe.js` (mêm
 | `liste.depense` | Dépensé | Spent | Wozã | ☐ |
 | `liste.reste` | Il reste | Left | Esi susɔ | ☐ |
 | `liste.ajouterLabel` | Ajouter un article | Add an item | Tsɔ nu kpe ɖe eŋu | ☐ |
-| `liste.ajouterPh` | Ajouter : ex. sac à main | Add: e.g. handbag | Kpe ɖe eŋu : kpɔɖeŋu, asikotoku | ☐ |
+| `liste.ajouterPh` | Ex. : riz | E.g. rice | Kpɔɖeŋu : mɔli | ☐ |
 | `liste.article` | Article | Item | Nu | ☐ |
 | `liste.prix` | Prix (F) | Price (F) | Asi (F) | ☐ |
 | `liste.cocher` | Cocher {nom} | Tick {nom} | Ɖo dzesi {nom} | ☐ |
@@ -535,6 +535,131 @@ Pour corriger une phrase éwé : modifier sa valeur dans `src/i18n-ewe.js` (mêm
 | `srv.Code incorrect` | Code incorrect | Wrong code | Kɔd la mele eme o | ☐ |
 | `srv.Aucun compte avec ce numéro. Crée ton compte.` | Aucun compte avec ce numéro. Crée ton compte. | No account with this number. Create your account. | Akɔnta aɖeke mele nɔmba sia ŋu o. Wɔ wò akɔnta. | ☐ |
 | `srv.Comptes indisponibles sur le serveur` | Comptes indisponibles sur le serveur | Accounts unavailable on the server | Akɔntawo meli le server la dzi o | ☐ |
+| `mdp.label` | Mot de passe | Password | Ɣaɣlãnya | ☐ |
+| `mdp.ph` | 8 caractères minimum | At least 8 characters | Nuŋɔŋlɔ 8 ya teti | ☐ |
+| `mdp.confirmer` | Confirme le mot de passe | Confirm the password | Gaŋlɔ ɣaɣlãnya la | ☐ |
+| `mdp.afficher` | Afficher le mot de passe | Show password | Fia ɣaɣlãnya la | ☐ |
+| `mdp.masquer` | Masquer le mot de passe | Hide password | Ɣla ɣaɣlãnya la | ☐ |
+| `mdp.tropCourt` | Au moins 8 caractères. | At least 8 characters. | Nuŋɔŋlɔ 8 ya teti. | ☐ |
+| `mdp.different` | Les deux mots de passe ne sont pas pareils. | The two passwords don't match. | Ɣaɣlãnya eveawo mesɔ o. | ☐ |
+| `mdp.solidite` | Solidité : {niveau}. | Strength: {niveau}. | Ŋusẽ : {niveau}. | ☐ |
+| `mdp.faible` | faible | weak | mesẽ o | ☐ |
+| `mdp.moyen` | moyenne | medium | sẽ vie | ☐ |
+| `mdp.fort` | bonne | good | sẽ | ☐ |
+| `mdp.conseil` | Mélange lettres, chiffres et signes. | Mix letters, numbers and symbols. | Tsɔ nuŋɔŋlɔwo, xexlẽdzesiwo kple dzesiwo tsaka. | ☐ |
+| `connexion.intro` | Connecte-toi avec ton numéro (ou ton e-mail) et ton mot de passe. | Log in with your number (or your email) and your password. | Ge ɖe eme kple wò nɔmba (alo wò e-mail) kple wò ɣaɣlãnya. | ☐ |
+| `connexion.bouton` | Me connecter | Log in | Ge ɖe eme | ☐ |
+| `connexion.oubli` | Mot de passe oublié ? | Forgot password? | Ŋlɔ ɣaɣlãnya be? | ☐ |
+| `code.renvoyer` | Renvoyer le code | Send the code again | Gaɖo kɔd la | ☐ |
+| `code.renvoye` | Nouveau code envoyé. | New code sent. | Woɖo kɔd yeye. | ☐ |
+| `code.brouillon` | Les informations de l'inscription ont été perdues. Recommence l'inscription. | Your sign-up details were lost. Please sign up again. | Akɔntawɔwɔ ƒe nyatakakawo bu. Gadze egɔme. | ☐ |
+| `oubli.titre` | Mot de passe oublié | Forgot password | Ŋlɔ ɣaɣlãnya be | ☐ |
+| `oubli.titreCreation` | Crée ton mot de passe | Create your password | Wɔ wò ɣaɣlãnya | ☐ |
+| `oubli.intro` | Reçois un code pour choisir un nouveau mot de passe. | Get a code to choose a new password. | Xɔ kɔd be nàtia ɣaɣlãnya yeye. | ☐ |
+| `oubli.creation` | Ton compte n'a pas encore de mot de passe. Reçois un code pour en créer un. | Your account doesn't have a password yet. Get a code to create one. | Ɣaɣlãnya aɖeke mele wò akɔnta ŋu haɖe o. Xɔ kɔd be nàwɔ ɖeka. | ☐ |
+| `oubli.recevoir` | Recevoir un code | Get a code | Xɔ kɔd | ☐ |
+| `oubli.nouveau` | Nouveau mot de passe | New password | Ɣaɣlãnya yeye | ☐ |
+| `oubli.valider` | Enregistrer et me connecter | Save and log in | Dzrae ɖo eye nàge ɖe eme | ☐ |
+| `oubli.autre` | Changer de numéro ou d'e-mail | Use another number or email | Trɔ nɔmba alo e-mail | ☐ |
+| `oubli.lienExpire` | Le lien a expiré. | The link has expired. | Kadodo la ƒe ɣeyiɣi va yi. | ☐ |
+| `oubli.aideEmail` | Le code (et un lien) arrive par e-mail. Regarde aussi les spams. | The code (and a link) arrives by email. Check your spam too. | Kɔd la (kple kadodo aɖe) ava e-mail me. Kpɔ spam me hã. | ☐ |
+| `erreur.identifiants` | Numéro, e-mail ou mot de passe incorrect. | Wrong number, email or password. | Nɔmba, e-mail alo ɣaɣlãnya la mele eme o. | ☐ |
+| `erreur.emailNonConfirme` | Confirme d'abord ton e-mail : on vient de te renvoyer un code. | Confirm your email first: we just sent you a new code. | Ɖo kpe wò e-mail dzi gbã : míegaɖo kɔd ɖe wò. | ☐ |
+| `erreur.dejaInscrit` | Cet e-mail a déjà un compte. Connecte-toi. | This email already has an account. Log in. | Akɔnta le e-mail sia ŋu xoxo. Ge ɖe eme. | ☐ |
+| `erreur.mdpFaible` | Mot de passe trop faible : choisis-en un plus long. | Password too weak: choose a longer one. | Ɣaɣlãnya la mesẽ o : tia esi didi wu. | ☐ |
+| `erreur.envoiEmail` | L'e-mail n'a pas pu être envoyé. Réessaie plus tard, ou utilise ton numéro de téléphone. | The email could not be sent. Try again later, or use your phone number. | Womete ŋu ɖo e-mail la o. Gagbugbɔ te kpɔ emegbe, alo zã wò telefon nɔmba. | ☐ |
+| `erreur.mdpIdentique` | Choisis un mot de passe différent de l'ancien. | Choose a password different from the old one. | Tia ɣaɣlãnya si to vovo na xoxoa. | ☐ |
+| `profil.modifier` | Modifier mon profil | Edit my profile | Trɔ nye nyatakakawo | ☐ |
+| `profil.apparence` | Apparence | Appearance | Alesi wòdze | ☐ |
+| `theme.clair` | Clair | Light | Kekeli | ☐ |
+| `theme.sombre` | Sombre | Dark | Viviti | ☐ |
+| `theme.auto` | Automatique | Automatic | Le eɖokui si | ☐ |
+| `theme.autoSous` | Automatique : suit le réglage du téléphone. | Automatic: follows your phone's setting. | Le eɖokui si : ewɔa abe wò telefon ene. | ☐ |
+| `edition.titre` | Modifier mon profil | Edit my profile | Trɔ nye nyatakakawo | ☐ |
+| `edition.prenom` | Prénom | First name | Ŋkɔ | ☐ |
+| `edition.enregistre` | Enregistré. | Saved. | Wodzrae ɖo. | ☐ |
+| `edition.email` | E-mail | Email | E-mail | ☐ |
+| `edition.actuel` | Actuel : {x} | Current: {x} | Fifitɔ : {x} | ☐ |
+| `edition.aucunEmail` | Aucun e-mail pour l'instant. | No email yet. | E-mail aɖeke meli haɖe o. | ☐ |
+| `edition.emailNouveau` | Nouvel e-mail | New email | E-mail yeye | ☐ |
+| `edition.emailCode` | Code reçu sur le nouvel e-mail | Code received at the new email | Kɔd si nèxɔ le e-mail yeye la me | ☐ |
+| `edition.emailEnvoye` | Code envoyé à {x}. | Code sent to {x}. | Woɖo kɔd ɖe {x}. | ☐ |
+| `edition.emailOk` | E-mail changé. | Email changed. | Wotrɔ e-mail la. | ☐ |
+| `edition.emailAncien` | Presque fini : confirme aussi avec le message reçu sur ton ancien e-mail. | Almost done: also confirm with the message sent to your old email. | Èsusɔ vie : ɖo kpe edzi kple gbedasi si va wò e-mail xoxoa me hã. | ☐ |
+| `edition.emailTel` | Ton compte se connecte avec ton numéro de téléphone. | Your account logs in with your phone number. | Wò akɔnta gena ɖe eme kple wò telefon nɔmba. | ☐ |
+| `edition.tel` | Téléphone | Phone | Telefon | ☐ |
+| `edition.aucunTel` | Aucun numéro pour l'instant. | No number yet. | Nɔmba aɖeke meli haɖe o. | ☐ |
+| `edition.telNouveau` | Nouveau numéro | New number | Nɔmba yeye | ☐ |
+| `edition.telCode` | Code reçu par SMS | Code received by SMS | Kɔd si nèxɔ le SMS me | ☐ |
+| `edition.telEnvoye` | Code envoyé au {x}. | Code sent to {x}. | Woɖo kɔd ɖe {x}. | ☐ |
+| `edition.telOk` | Numéro changé. | Number changed. | Wotrɔ nɔmba la. | ☐ |
+| `edition.recevoirCode` | Recevoir un code | Get a code | Xɔ kɔd | ☐ |
+| `edition.mdp` | Mot de passe | Password | Ɣaɣlãnya | ☐ |
+| `edition.mdpAncien` | Mot de passe actuel | Current password | Ɣaɣlãnya fifitɔ | ☐ |
+| `edition.mdpChanger` | Changer le mot de passe | Change password | Trɔ ɣaɣlãnya | ☐ |
+| `edition.mdpOk` | Mot de passe changé. | Password changed. | Wotrɔ ɣaɣlãnya la. | ☐ |
+| `suppr.bouton` | Supprimer ma boutique | Delete my shop | Tutu nye fiase ɖa | ☐ |
+| `suppr.titre` | Supprimer ta boutique ? | Delete your shop? | Àtutu wò fiase ɖa? | ☐ |
+| `suppr.texte` | Ta boutique, ses articles et ses photos seront supprimés. Tu ne pourras pas revenir en arrière. | Your shop, its items and its photos will be deleted. You won't be able to undo this. | Woatutu wò fiase, eƒe nuwo kple eƒe fotowo ɖa. Màte ŋu atrɔ agbɔ o. | ☐ |
+| `suppr.taper` | Pour confirmer, tape le nom de ta boutique : {nom} | To confirm, type the name of your shop: {nom} | Be nàɖo kpe edzi la, ŋlɔ wò fiase ƒe ŋkɔ : {nom} | ☐ |
+| `suppr.confirmer` | Supprimer définitivement | Delete for good | Tutui ɖa tegbee | ☐ |
+| `suppr.enCours` | Suppression… | Deleting… | Ele tutum ɖa… | ☐ |
+| `suppr.erreur` | La boutique n'a pas pu être supprimée. Réessaie. | The shop could not be deleted. Try again. | Womete ŋu tutu fiasea ɖa o. Gagbugbɔ te kpɔ. | ☐ |
+| `hor.propositions` | Propositions | Suggestions | Susu siwo wona | ☐ |
+| `hor.jours` | Jours et heures | Days and hours | Ŋkekewo kple gaƒoƒowo | ☐ |
+| `hor.libre` | Écrire moi-même | Write it myself | Maŋlɔe ŋutɔ | ☐ |
+| `hor.lesJours` | Jours d'ouverture | Opening days | Ŋkeke siwo me woʋuna | ☐ |
+| `hor.ouverture` | Ouverture | Opens | Ʋuʋu | ☐ |
+| `hor.fermeture` | Fermeture | Closes | Tutu | ☐ |
+| `hor.aucunJour` | Choisis au moins un jour. | Choose at least one day. | Tia ŋkeke ɖeka ya teti. | ☐ |
+| `hor.resultat` | Horaires : {x} | Hours: {x} | Gaƒoƒowo : {x} | ☐ |
+| `hor.tous` | Tous les jours | Every day | Gbe sia gbe | ☐ |
+| `jour.0` | Lun | Mon | Dzo | ☐ |
+| `jour.1` | Mar | Tue | Bla | ☐ |
+| `jour.2` | Mer | Wed | Kuɖ | ☐ |
+| `jour.3` | Jeu | Thu | Yaw | ☐ |
+| `jour.4` | Ven | Fri | Fiɖ | ☐ |
+| `jour.5` | Sam | Sat | Mem | ☐ |
+| `jour.6` | Dim | Sun | Kɔs | ☐ |
+| `jourLettre.0` | L | M | Dz | ☐ |
+| `jourLettre.1` | M | T | B | ☐ |
+| `jourLettre.2` | M | W | K | ☐ |
+| `jourLettre.3` | J | T | Y | ☐ |
+| `jourLettre.4` | V | F | F | ☐ |
+| `jourLettre.5` | S | S | M | ☐ |
+| `jourLettre.6` | D | S | Kɔ | ☐ |
+| `jourLong.0` | Lundi | Monday | Dzoɖa | ☐ |
+| `jourLong.1` | Mardi | Tuesday | Blaɖa | ☐ |
+| `jourLong.2` | Mercredi | Wednesday | Kuɖa | ☐ |
+| `jourLong.3` | Jeudi | Thursday | Yawoɖa | ☐ |
+| `jourLong.4` | Vendredi | Friday | Fiɖa | ☐ |
+| `jourLong.5` | Samedi | Saturday | Memleɖa | ☐ |
+| `jourLong.6` | Dimanche | Sunday | Kɔsiɖa | ☐ |
+| `liste.prixPh` | Facultatif | Optional | Ne èdi | ☐ |
+| `carte.filtres` | Afficher seulement | Show only | Fia esiawo ko | ☐ |
+| `filtre.Pagnes wax` | Pagnes | Wax prints | Wax avɔ | ☐ |
+| `filtre.Épices` | Épices | Spices | Atadi | ☐ |
+| `filtre.Alimentation` | Alimentation | Food | Nuɖuɖu | ☐ |
+| `filtre.Mèches et coiffure` | Mèches | Hair | Ɖa | ☐ |
+| `filtre.Chaussures` | Chaussures | Shoes | Afɔkpa | ☐ |
+| `filtre.Sacs` | Sacs | Bags | Kotoku | ☐ |
+| `filtre.Cosmétiques` | Cosmétiques | Cosmetics | Atsyɔ̃ɖonu | ☐ |
+| `filtre.Artisanat` | Souvenirs | Souvenirs | Ŋkuɖodzinu | ☐ |
+| `filtre.Pharmacie` | Pharmacie | Pharmacy | Atikedzraƒe | ☐ |
+| `filtre.Banque` | Banque | Bank | Gadzraɖoƒe | ☐ |
+| `filtre.Toilettes` | Toilettes | Toilets | Afɔdzi | ☐ |
+| `filtre.Eau` | Eau | Water | Tsi | ☐ |
+| `filtre.Parking` | Parking | Parking | Moto tɔɖeƒe | ☐ |
+| `filtre.Mobile money` | Mobile money | Mobile money | Mobile money | ☐ |
+| `filtre.Église` | Église | Church | Sɔlemexɔ | ☐ |
+| `srv.Ce numéro a déjà un compte. Connecte-toi.` | Ce numéro a déjà un compte. Connecte-toi. | This number already has an account. Log in. | Akɔnta le nɔmba sia ŋu xoxo. Ge ɖe eme. | ☐ |
+| `srv.Ce numéro a déjà un compte.` | Ce numéro a déjà un compte. | This number already has an account. | Akɔnta le nɔmba sia ŋu xoxo. | ☐ |
+| `srv.Mot de passe trop court` | Mot de passe trop court | Password too short | Ɣaɣlãnya la le kpuie akpa | ☐ |
+| `srv.Mot de passe trop faible` | Mot de passe trop faible | Password too weak | Ɣaɣlãnya la mesẽ o | ☐ |
+| `srv.Prénom manquant` | Prénom manquant | First name missing | Ŋkɔ mele eme o | ☐ |
+| `srv.Session expirée, reconnecte-toi` | Session expirée, reconnecte-toi | Session expired, log in again | Ɣeyiɣi la va yi, gage ɖe eme | ☐ |
+| `srv.Mot de passe actuel incorrect` | Mot de passe actuel incorrect | Current password is wrong | Ɣaɣlãnya fifitɔ la mele eme o | ☐ |
+| `srv.Action inconnue` | Action inconnue | Unknown action | Womenya nu sia o | ☐ |
 
 ## 2. Phrases encore en français quand l'éwé est choisi (0)
 

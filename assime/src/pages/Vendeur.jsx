@@ -8,6 +8,7 @@ import { Wax, GlassIcon } from '../components/art'
 import { lireImage } from '../lib/image'
 import { CATEGORIES } from '../data/demo'
 import { fmtMoney } from '../lib/geo'
+import { PROPOSITIONS, HEURES, texteHoraires, lireHoraires, horairesLisibles, heureLisible } from '../lib/horaires'
 import { CompteRequis } from './Entree'
 
 /** Sans compte vérifié : « Pour vendre, crée d'abord ton compte » à la place de l'espace vendeur */
@@ -109,6 +110,97 @@ const Requis = () => {
 const Erreur = ({ id, children }) => (children ? <p id={id} className="mt-1.5 text-[13px] font-semibold text-red-700" role="alert">{children}</p> : null)
 const ROUGE = '!border-red-600 !border-2 bg-red-50/40'
 
+/** Horaires : propositions en un toucher, jours + heures, ou texte libre. valeur = texte enregistré (« Lun–Sam · 7h–18h ») */
+function ChoixHoraires({ valeur, onChange }) {
+  const { langue, t } = useApp()
+  const lu = lireHoraires(valeur)
+  const [mode, setMode] = useState(valeur && !lu ? 'libre' : lu && !PROPOSITIONS.some(p => texteHoraires(p) === valeur) ? 'jours' : 'propositions')
+  const [jours, setJours] = useState(lu?.jours || [0, 1, 2, 3, 4, 5])
+  const [de, setDe] = useState(lu?.de || '7:00')
+  const [a, setA] = useState(lu?.a || '18:00')
+  const majJours = (j, d = de, f = a) => { setJours(j); setDe(d); setA(f); onChange(j.length ? texteHoraires({ jours: j, de: d, a: f }) : '') }
+  const ongle = (id, x) => (
+    <button type="button" onClick={() => { setMode(id); if (id === 'jours') majJours(jours) }} aria-pressed={mode === id}
+      className={'h-9 px-3 rounded-full text-[13px] font-semibold ' + (mode === id ? 'bg-ink text-white' : 'bg-white border border-line text-ink')}>{x}</button>
+  )
+  const heure = h => heureLisible(h, langue)
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('form.horaires')}>
+        {ongle('propositions', t('hor.propositions'))}{ongle('jours', t('hor.jours'))}{ongle('libre', t('hor.libre'))}
+      </div>
+      {mode === 'propositions' && (
+        <div className="flex flex-col gap-2">
+          {PROPOSITIONS.map(p => {
+            const texte = texteHoraires(p)
+            return (
+              <button key={texte} type="button" onClick={() => onChange(texte)} aria-pressed={valeur === texte}
+                className={'h-11 px-4 rounded-[14px] text-left text-[14px] font-semibold flex items-center justify-between ' + (valeur === texte ? 'bg-[#E6F4EC] text-brand border-2 border-brand' : 'bg-white border border-line')}>
+                {horairesLisibles(texte, langue, t)}{valeur === texte && <Icon d={I.check} size={18} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {mode === 'jours' && (
+        <div className="card !shadow-none p-3 flex flex-col gap-3">
+          <div className="flex justify-between gap-1" role="group" aria-label={t('hor.lesJours')}>
+            {[0, 1, 2, 3, 4, 5, 6].map(i => {
+              const actif = jours.includes(i)
+              return (
+                <button key={i} type="button" onClick={() => majJours(actif ? jours.filter(x => x !== i) : [...jours, i])} aria-pressed={actif} aria-label={t('jourLong.' + i)}
+                  className={'w-10 h-10 rounded-full text-[14px] font-bold ' + (actif ? 'bg-brand text-white' : 'bg-white border border-line text-ink')}>{t('jourLettre.' + i)}</button>
+              )
+            })}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <label className="text-[12px] font-semibold text-muted">{t('hor.ouverture')}
+              <select value={de} onChange={e => majJours(jours, e.target.value, a)} className="field h-11 mt-1 !px-3">{HEURES.map(h => <option key={h} value={h}>{heure(h)}</option>)}</select>
+            </label>
+            <label className="text-[12px] font-semibold text-muted">{t('hor.fermeture')}
+              <select value={a} onChange={e => majJours(jours, de, e.target.value)} className="field h-11 mt-1 !px-3">{HEURES.map(h => <option key={h} value={h}>{heure(h)}</option>)}</select>
+            </label>
+          </div>
+          {!jours.length && <p className="text-[12px] font-semibold text-red-700">{t('hor.aucunJour')}</p>}
+        </div>
+      )}
+      {mode === 'libre' && (
+        <input id="hor" className="field" placeholder={t('form.horairesPh')} value={valeur} onChange={e => onChange(e.target.value)} aria-label={t('hor.libre')} />
+      )}
+      {valeur && mode !== 'libre' && <p className="text-[13px] text-muted" aria-live="polite">{t('hor.resultat', { x: horairesLisibles(valeur, langue, t) })}</p>}
+    </div>
+  )
+}
+
+/** Fenêtre de confirmation : supprimer ma boutique (taper son nom) */
+function SuppressionBoutique({ nom, onFermer }) {
+  const nav = useNavigate()
+  const { supprimerMaBoutique, t } = useApp()
+  const [saisie, setSaisie] = useState('')
+  const [attente, setAttente] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const pareil = saisie.trim().toLowerCase() === nom.trim().toLowerCase()
+  const supprimer = async e => {
+    e.preventDefault()
+    if (!pareil || attente) return
+    setAttente(true); setErreur('')
+    try { await supprimerMaBoutique(); nav('/vendeur', { replace: true }) } catch (err) { console.error('[Assimé] suppression', err); setAttente(false); setErreur(t('suppr.erreur')) }
+  }
+  return (
+    <div className="absolute inset-0 z-[2000] bg-black/50 flex items-end" role="dialog" aria-modal="true" aria-labelledby="suppr-titre" onKeyDown={e => e.key === 'Escape' && onFermer()}>
+      <form onSubmit={supprimer} className="w-full bg-white rounded-t-[28px] p-5 pb-7 flex flex-col gap-3">
+        <h2 id="suppr-titre" className="h-display text-[21px]">{t('suppr.titre')}</h2>
+        <p className="text-[14px] text-ink/80 leading-relaxed">{t('suppr.texte')}</p>
+        <label htmlFor="suppr-nom" className="text-[13px] font-semibold">{t('suppr.taper', { nom })}</label>
+        <input id="suppr-nom" autoFocus className="field" value={saisie} onChange={e => setSaisie(e.target.value)} autoComplete="off" placeholder={nom} />
+        {erreur && <p className="text-[13px] font-semibold text-red-700" role="alert">{erreur}</p>}
+        <button type="submit" disabled={!pareil || attente} className="btn h-[50px] bg-red-600 text-white">{attente ? t('suppr.enCours') : t('suppr.confirmer')}</button>
+        <button type="button" onClick={onFermer} className="btn h-[46px] bg-white border border-line text-ink">{t('commun.annuler')}</button>
+      </form>
+    </div>
+  )
+}
+
 export const VendeurBoutique = avecCompte(function VendeurBoutique() {
   const nav = useNavigate()
   const { boutique, maBoutiqueId, setMaBoutiqueId, setBoutiques, moi, gpsIndispo, t, tc } = useApp()
@@ -127,6 +219,7 @@ export const VendeurBoutique = avecCompte(function VendeurBoutique() {
   const [msgGps, setMsgGps] = useState('')
   const [essaye, setEssaye] = useState(false) // erreurs affichées après le premier essai d'envoi
   const [recadrer, setRecadrer] = useState(0)
+  const [suppression, setSuppression] = useState(false)
   const blocs = { nom: useRef(null), cat: useRef(null), pos: useRef(null), contact: useRef(null) }
   const cat = saisieAutre ? autre.trim() : categorie
   // Champs obligatoires : recalculés à chaque saisie, le rouge disparaît dès que le champ est rempli
@@ -217,15 +310,21 @@ export const VendeurBoutique = avecCompte(function VendeurBoutique() {
             <Erreur id="err-contact">{voir('contact') && t(erreurs.contact)}</Erreur>
           </div>
           <div>
-            <label htmlFor="hor" className="label">{t('form.horaires')}</label>
-            <input id="hor" className="field mt-1.5" placeholder={t('form.horairesPh')} value={horaires} onChange={e => setHoraires(e.target.value)} />
+            <div className="label mb-2">{t('form.horaires')}</div>
+            <ChoixHoraires valeur={horaires} onChange={setHoraires} />
           </div>
+          {existante && (
+            <div className="mt-4 pt-4 border-t border-line">
+              <button type="button" onClick={() => setSuppression(true)} className="btn w-full h-12 bg-white border-2 border-red-600 text-red-700">{t('suppr.bouton')}</button>
+            </div>
+          )}
         </div>
         <div className="px-5 py-3 bg-white border-t border-line">
           <button type="submit" className="btn btn-main no-arrow w-full h-[52px]">{existante ? t('form.enregistrer') : t('form.publier')}</button>
           {essaye && nbErreurs > 0 && <p className="text-[12px] text-red-700 font-semibold text-center mt-1.5">{t('form.manque')}</p>}
         </div>
       </form>
+      {suppression && existante && <SuppressionBoutique nom={existante.nom} onFermer={() => setSuppression(false)} />}
     </Screen>
   )
 })

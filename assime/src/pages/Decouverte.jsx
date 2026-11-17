@@ -117,9 +117,6 @@ const IlluVitrine = () => (
       <rect x="146" y="152" width="28" height="48" rx="4" fill="#fff" stroke={TRAIT} strokeWidth="1.5" />
       <path d="M60 200h200" stroke={TRAIT} strokeWidth="1.5" strokeLinecap="round" />
     </Dessin>
-    <Tuile x={52} y={170} cat="Tout" size={44} />
-    <Tuile x={119} y={164} cat="Pagnes wax" size={32} />
-    <Tuile x={201} y={164} cat="Sacs" size={32} />
   </>
 )
 

@@ -6,13 +6,17 @@ import { BrowserRouter, MemoryRouter, Routes, Route, Navigate } from 'react-rout
 const Router = import.meta.env.VITE_ROUTER === 'memory' ? MemoryRouter : BrowserRouter
 import './index.css'
 import { AppProvider, useApp } from './store'
-import { Inscription, Connexion, Code, Role } from './pages/Entree'
+import { Inscription, Connexion, Code, Role, MotDePasseOublie, NouveauMotDePasse } from './pages/Entree'
 import { Carte, Trajet, Retour, Recherche, Boutique, Guidage } from './pages/Navigation'
-import { Explorer, Liste, Assistant, Missions, Profil } from './pages/Autres'
+import { Explorer, Liste, Assistant, Missions, Profil, ModifierProfil } from './pages/Autres'
 import IA from './pages/IA'
 import Decouverte from './pages/Decouverte'
 import TestIA from './pages/TestIA'
 import { VendeurAccueil, VendeurBoutique, Articles } from './pages/Vendeur'
+import { lienRecuperation } from './lib/supabase'
+
+// Lien « mot de passe oublié » reçu par e-mail : on ouvre directement « Nouveau mot de passe »
+if (lienRecuperation && Router === BrowserRouter) window.history.replaceState(null, '', '/mot-de-passe/nouveau')
 
 function Accueil() {
   const { user } = useApp()
@@ -33,6 +37,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/connexion" element={<Connexion />} />
           <Route path="/code" element={<Code />} />
           <Route path="/role" element={<Role />} />
+          <Route path="/mot-de-passe" element={<MotDePasseOublie />} />
+          <Route path="/mot-de-passe/nouveau" element={<NouveauMotDePasse />} />
           <Route path="/carte" element={<Carte />} />
           <Route path="/trajet" element={<Trajet />} />
           <Route path="/retour" element={<Retour />} />
@@ -46,6 +52,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/test-ia" element={<TestIA />} />
           <Route path="/missions" element={<Missions />} />
           <Route path="/profil" element={<Profil />} />
+          <Route path="/profil/modifier" element={<ModifierProfil />} />
           <Route path="/vendeur" element={<VendeurAccueil />} />
           <Route path="/vendeur/boutique" element={<VendeurBoutique />} />
           <Route path="/vendeur/articles" element={<Articles />} />

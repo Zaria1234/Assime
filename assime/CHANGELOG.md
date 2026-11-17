@@ -1,5 +1,30 @@
 # Journal des versions
 
+## 1.10.0 — 17 novembre 2026
+
+### Comptes avec mot de passe
+- **Inscription** : prénom, téléphone **ou** e-mail, **mot de passe** (8 caractères minimum, bouton œil, indication de solidité), confirmation, rôle acheteur/vendeur.
+- **Vérification** : e-mail → vrai code à 6 chiffres envoyé par Supabase (ou le lien de l'e-mail) ; téléphone → **code de démo** (n'importe quels 6 chiffres), un seul endroit à remplacer par un vrai SMS : `codeSmsValide()` dans `api/compte.js`.
+- **Connexion** : téléphone ou e-mail + mot de passe (`signInWithPassword` ; le téléphone utilise l'e-mail technique `<numéro>@tel.assime.app`).
+- **Anciens comptes téléphone** (sans mot de passe) : à la connexion, on leur demande de créer un mot de passe après le code.
+- **Mot de passe oublié ?** : par e-mail, lien/code de réinitialisation Supabase ; par téléphone, code de démo puis nouveau mot de passe (côté serveur, `api/compte.js`).
+- **« Continuer sans compte »** revient sur la dernière slide, la page d'accueil et l'écran de connexion. Sans compte : carte, recherche, IA, liste. Vendre demande toujours un compte.
+
+### Profil
+- **« Modifier mon profil »** : prénom ; e-mail (code envoyé au **nouvel** e-mail, `updateUser`) ; téléphone (code de démo) ; mot de passe (ancien + nouveau + confirmation).
+- **Apparence** : Clair / Sombre / Automatique (suit le téléphone), mémorisé. Mode sombre sur tous les écrans : fond #111315, cartes #1B1E21, texte clair, fond de carte Leaflet légèrement assombri (marqueurs inchangés).
+
+### Vendeur
+- **Supprimer ma boutique** (bouton rouge en bas de « Modifier ma boutique ») : fenêtre de confirmation, il faut taper le nom de la boutique. Supprime la ligne `boutiques` (RLS) et les photos `photos/<uid>/`, puis retour à l'espace vendeur avec « Créer ma boutique ».
+- **Horaires faciles** : propositions en un toucher (« Lun–Sam · 7h–18h », « Tous les jours · 7h–19h », « Lun–Ven · 8h–17h »), ou jours à cocher (L M M J V S D) + heures d'ouverture/fermeture, ou « Écrire moi-même ». Enregistrés en texte lisible, affichés dans la langue choisie, modifiables à tout moment (`src/lib/horaires.js`).
+
+### Liste, slides, carte
+- **Ma liste** : champs « Article » et « Prix (F) » côte à côte (prix facultatif), un seul bouton « Ajouter ».
+- Slide « Tu vends au marché ? » : les trois tuiles d'icônes sont retirées (boutique grise et repère vert gardés).
+- **Carte** : rangée de pastilles qui défile sous la recherche (Pagnes, Épices, Alimentation, Mèches, Chaussures, Sacs, Cosmétiques, Souvenirs, Pharmacie, Banque, Toilettes, Eau, Parking, Mobile money, Église), mêmes icônes que les marqueurs. Toucher = n'afficher que ces lieux (pastille verte) ; re-toucher = tout réafficher. Rien d'autre ne change sur la carte.
+
+Tous les nouveaux textes passent par `t()` en éwé, français et anglais.
+
 ## 1.9.1 — 17 novembre 2026
 
 - **Éwé partout** : toutes les phrases de l'app (écrans, catégories, repères, missions, réponses de l'IA hors ligne, messages d'erreur) sont traduites dans `src/i18n-ewe.js`. Traduction proposée, **à faire vérifier** (`docs/TRADUCTIONS.md`, cases à cocher).

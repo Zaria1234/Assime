@@ -55,18 +55,34 @@ Ensuite, crée une boutique dans l'espace vendeur sur un téléphone : elle appa
 
 | Moyen | Comment ça marche |
 | --- | --- |
-| **Téléphone** | `POST /api/compte` (fonction Vercel) crée ou retrouve le compte `<numéro>@tel.assime.app`, puis renvoie un jeton que l'app échange contre une session (`verifyOtp`, type `magiclink`). **Code SMS de démo** : n'importe quels 6 chiffres. Pour un vrai SMS, remplir `codeSmsValide()` dans `api/compte.js`. |
-| **E-mail** | `signInWithOtp` → Supabase envoie un e-mail → code à 6 chiffres (`verifyOtp`, type `email`) ou lien « Log In ». |
-| **Sans compte** | Compte anonyme, seulement avec « Continuer sans compte ». |
+| **Téléphone** | Inscription : code de démo puis `POST /api/compte` (`inscription`) crée le compte `<numéro>@tel.assime.app` avec son mot de passe. Connexion : `signInWithPassword` avec cet e-mail technique. **Code SMS de démo** : n'importe quels 6 chiffres. Pour un vrai SMS, remplir **uniquement** `codeSmsValide()` dans `api/compte.js` (tous les codes téléphone y passent). |
+| **E-mail** | Inscription : `signUp` (e-mail + mot de passe) → Supabase envoie un code à 6 chiffres (`verifyOtp`, type `signup`) ou un lien de confirmation. Connexion : `signInWithPassword`. |
+| **Sans compte** | Compte anonyme, seulement avec « Continuer sans compte » (dernière slide, accueil, écran de connexion). Vendre demande un compte. |
 
-- **Inscription** = numéro (ou e-mail) + prénom + rôle. **Connexion** = numéro seul : prénom et rôle relus dans `profils`.
+**Actions de `api/compte.js`** (toutes vérifient le code, sauf `etat`) :
+
+| Action | Rôle |
+| --- | --- |
+| `etat` | Le numéro a-t-il un compte, et un mot de passe ? (anciens comptes sans mot de passe → on leur fait créer un mot de passe) |
+| `inscription` | Crée le compte téléphone (prénom, rôle, mot de passe ≥ 8 caractères) |
+| `motDePasse` | Mot de passe oublié (ou création) pour un compte téléphone |
+| `telephone` | Changer de numéro (session obligatoire) : met à jour `profils.telephone` et l'e-mail technique |
+
+- **Mot de passe oublié** : e-mail → `resetPasswordForEmail` (lien vers `/mot-de-passe/nouveau`, ou code) ; téléphone → code de démo + `motDePasse`.
+- **Modifier mon profil** : prénom (`profils`), e-mail (`updateUser` → code envoyé au nouvel e-mail, type `email_change`), téléphone (`telephone`), mot de passe (ancien vérifié, puis `updateUser`).
+- ⚠️ **Tant que le code téléphone est un code de démo**, n'importe qui connaissant un numéro peut réinitialiser le mot de passe de ce compte. À corriger en branchant un vrai SMS dans `codeSmsValide()` avant un lancement public.
+- **Supprimer ma boutique** : `delete` sur `boutiques` (règle « supprimée par son propriétaire ») puis suppression des fichiers `photos/<uid>/` (règle « photos supprimées dans son dossier »). Les votes liés partent avec (`on delete cascade`).
+
+- **Inscription** = prénom + numéro (ou e-mail) + mot de passe + rôle. **Connexion** = numéro (ou e-mail) + mot de passe : prénom et rôle relus dans `profils`.
 - **Nouveau compte = tout vide** (liste, favoris, historique, missions, points). Les boutiques du marché restent.
 - **Se déconnecter** efface du téléphone les données du compte ; elles reviennent à la reconnexion.
 - Variable **serveur** `SUPABASE_SERVICE_ROLE_KEY` (Vercel → Environment Variables, **sans** préfixe `VITE_`). Elle ne doit jamais aller dans `src/` ni dans Git.
 
 ### E-mails : à savoir
 - Sur l'offre gratuite, Supabase utilise son propre serveur d'envoi : **2 e-mails par heure**, et seulement vers les adresses des membres de l'organisation Supabase.
-- Le **modèle d'e-mail ne peut pas être modifié** sans SMTP personnalisé : l'e-mail contient donc un **lien « Log In »** (qui connecte directement). Pour afficher le code à 6 chiffres : brancher un SMTP (Authentication → SMTP Settings, ex. Brevo ou Resend, gratuits), puis ajouter `{{ .Token }}` dans Authentication → Email Templates → **Magic Link** et **Confirm signup**.
+- Le **modèle d'e-mail ne peut pas être modifié** sans SMTP personnalisé : l'e-mail contient donc seulement un **lien** (qui confirme et connecte). Pour afficher le **code à 6 chiffres** demandé par l'app : brancher un SMTP (Authentication → SMTP Settings, ex. Brevo ou Resend, gratuits), puis ajouter `{{ .Token }}` dans Authentication → Email Templates → **Confirm signup**, **Reset password** et **Change email address**.
+- « Secure email change » (Authentication → Providers → Email) demande aussi une confirmation sur l'**ancien** e-mail : l'app l'indique (« confirme aussi avec le message reçu sur ton ancien e-mail »).
+- Ajouter `https://assime-xi.vercel.app/mot-de-passe/nouveau` aux URL de retour (lien de réinitialisation).
 - URL de retour autorisées : Authentication → URL Configuration (`https://assime-xi.vercel.app/**`).
 
 ## Ce qui est partagé

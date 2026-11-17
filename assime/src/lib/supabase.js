@@ -9,8 +9,10 @@ export const supabase = url && cle
   ? createClient(url, cle, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'assime_auth', detectSessionInUrl: false } })
   : null
 
-/** Retour du lien « Log In » de l'e-mail : la session arrive dans l'adresse (#access_token=…).
- *  On l'ouvre nous-mêmes puis on nettoie l'adresse (la détection automatique bloquait le démarrage). */
+/** Retour d'un lien reçu par e-mail (confirmation, réinitialisation) : la session arrive dans l'adresse (#access_token=…).
+ *  On l'ouvre nous-mêmes puis on nettoie l'adresse (la détection automatique bloquait le démarrage).
+ *  lienRecuperation = vrai si c'est le lien « mot de passe oublié » : l'app ouvre alors « Nouveau mot de passe ». */
+export const lienRecuperation = typeof window !== 'undefined' && new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery'
 const sessionDuLien = (() => {
   if (!supabase || typeof window === 'undefined') return Promise.resolve()
   const p = new URLSearchParams(window.location.hash.slice(1))
@@ -46,32 +48,109 @@ export function identite() {
   return enCours
 }
 
-// ---------- Vrais comptes : téléphone (code de démo, via /api/compte) ou e-mail (Supabase) ----------
-/** Téléphone : le serveur crée ou retrouve le compte, puis on échange son jeton contre une vraie session.
- *  Renvoie { uid, profil: { prenom, telephone, role }, nouveau } */
-export async function connexionTelephone({ telephone, prenom, role, code }) {
-  const r = await fetch('/api/compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ telephone, prenom, role, code }) })
+// ---------- Vrais comptes : identifiant (e-mail ou téléphone) + mot de passe ----------
+// Téléphone : identifiant = e-mail technique « <numéro>@tel.assime.app » (même règle que api/compte.js).
+// Les codes par téléphone (inscription, oubli, changement de numéro) passent par /api/compte, côté serveur.
+export const normaliserTel = tel => { const c = String(tel || '').replace(/\D/g, ''); return c.length === 8 ? '228' + c : c }
+export const emailTechnique = tel => normaliserTel(tel) + '@tel.assime.app'
+export const estEmailTechnique = email => /@tel\.assime\.app$/.test(email || '')
+const retourSite = chemin => window.location.origin + chemin
+
+/** Appel à /api/compte ; erreur avec un message simple (traduisible) si le serveur en donne un */
+async function apiCompte(corps) {
+  const r = await fetch('/api/compte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) })
   const json = await r.json().catch(() => ({}))
-  // Message simple pour l'écran (numéro inconnu, code faux) ; le détail technique reste dans l'erreur
-  if (!r.ok) throw Object.assign(new Error((json.erreur || 'Erreur') + ' ' + (json.detail || '') + ' (' + r.status + ')'), { simple: r.status < 500 ? json.erreur : null })
-  enCours = null
-  const { data, error } = await supabase.auth.verifyOtp({ token_hash: json.token_hash, type: 'magiclink' })
-  if (error) throw error
-  return { uid: data.user.id, profil: json.profil, nouveau: json.nouveau }
+  if (!r.ok) throw Object.assign(new Error((json.erreur || 'Erreur') + ' ' + (json.detail || '') + ' (' + r.status + ')'), { simple: r.status < 500 ? json.erreur : null, statut: r.status })
+  return json
 }
 
-/** E-mail : Supabase envoie un message avec un lien de connexion (et le code à 6 chiffres si le modèle l'affiche) */
-export async function envoyerCodeEmail(email, { prenom = '', role = 'acheteur' } = {}) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email, options: { shouldCreateUser: true, data: { prenom, role }, emailRedirectTo: window.location.origin + '/' },
-  })
-  if (error) throw error
-}
-export async function verifierCodeEmail(email, token) {
+/** Connexion avec mot de passe. Renvoie { uid, meta } */
+export async function connexionMotDePasse({ email, telephone, motDePasse }) {
   enCours = null
-  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email || emailTechnique(telephone), password: motDePasse })
   if (error) throw error
   return { uid: data.user.id, meta: data.user.user_metadata || {} }
+}
+
+/** Le compte téléphone existe-t-il, a-t-il déjà un mot de passe ? (comptes créés avant les mots de passe) */
+export const etatTelephone = telephone => apiCompte({ action: 'etat', telephone })
+
+/** Inscription par téléphone : le serveur vérifie le code et crée le compte, puis on se connecte */
+export async function inscriptionTelephone({ telephone, prenom, role, code, motDePasse }) {
+  await apiCompte({ action: 'inscription', telephone, prenom, role, code, motDePasse })
+  return connexionMotDePasse({ telephone, motDePasse })
+}
+
+/** Inscription par e-mail : Supabase envoie le code de confirmation. Renvoie { uid } si le compte est déjà ouvert
+ *  (projet sans confirmation d'e-mail), sinon {} : il faut le code. */
+export async function inscriptionEmail({ email, motDePasse, prenom, role }) {
+  enCours = null
+  const { data, error } = await supabase.auth.signUp({ email, password: motDePasse, options: { data: { prenom, role, mdp: true }, emailRedirectTo: retourSite('/') } })
+  if (error) throw error
+  // Adresse déjà inscrite : Supabase ne le dit pas directement (pas d'identité créée)
+  if (data.user && !data.user.identities?.length) throw Object.assign(new Error('User already registered'), { code: 'user_already_exists' })
+  return data.session ? { uid: data.user.id } : {}
+}
+export async function renvoyerCodeInscription(email) {
+  const { error } = await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: retourSite('/') } })
+  if (error) throw error
+}
+
+/** Vérifie un code reçu par e-mail. type : 'signup' (inscription), 'recovery' (mot de passe oublié), 'email_change' */
+export async function verifierCodeEmail(email, token, type = 'signup') {
+  enCours = null
+  let r = await supabase.auth.verifyOtp({ email, token, type })
+  // Selon la version de Supabase, le code d'inscription se vérifie avec le type « email »
+  if (r.error && type === 'signup') r = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+  if (r.error) throw r.error
+  return { uid: r.data.user.id, meta: r.data.user.user_metadata || {} }
+}
+
+/** Mot de passe oublié par e-mail : Supabase envoie un code (et un lien) de réinitialisation */
+export async function oubliEmail(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: retourSite('/mot-de-passe/nouveau') })
+  if (error) throw error
+}
+/** Mot de passe oublié par téléphone : code de démo vérifié par le serveur, puis connexion */
+export async function oubliTelephone({ telephone, code, motDePasse }) {
+  await apiCompte({ action: 'motDePasse', telephone, code, motDePasse })
+  return connexionMotDePasse({ telephone, motDePasse })
+}
+
+/** Nouveau mot de passe pour le compte connecté (après un code de réinitialisation, ou depuis le profil) */
+export async function changerMotDePasse(motDePasse) {
+  const { data, error } = await supabase.auth.updateUser({ password: motDePasse, data: { mdp: true } })
+  if (error) throw error
+  return data.user
+}
+/** Vérifie l'ancien mot de passe avant de le changer (nouvelle connexion au même compte) */
+export async function verifierMotDePasse(motDePasse) {
+  const { data } = await supabase.auth.getUser()
+  const email = data?.user?.email
+  if (!email) throw new Error('Session expirée')
+  const { error } = await supabase.auth.signInWithPassword({ email, password: motDePasse })
+  if (error) throw error
+}
+
+/** Changer d'e-mail : Supabase envoie un code au NOUVEL e-mail */
+export async function changerEmail(email) {
+  const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo: retourSite('/profil') })
+  if (error) throw error
+}
+/** Changer de numéro : code de démo vérifié par le serveur (même point unique que le futur SMS) */
+export async function changerTelephone(telephone, code) {
+  const { data } = await supabase.auth.getSession()
+  const jeton = data.session?.access_token
+  if (!jeton) throw new Error('Session expirée')
+  const r = await apiCompte({ action: 'telephone', jeton, telephone, code })
+  await supabase.auth.refreshSession().catch(() => {}) // l'identifiant d'un compte téléphone a changé
+  return r.telephone
+}
+
+/** Prénom et rôle d'un compte qui vient de se connecter */
+export async function profilDe(uid) {
+  const { data } = await supabase.from('profils').select('prenom, telephone, role').eq('id', uid).maybeSingle()
+  return data
 }
 
 export async function deconnecter() {
@@ -143,6 +222,19 @@ export async function enregistrerBoutique(b, uid) {
   const { data, error } = await supabase.from('boutiques').upsert(versLigne(prete)).select().single()
   if (error) throw error
   return depuisLigne(data)
+}
+
+/** Supprime ma boutique (la règle de la base n'autorise que son propriétaire) et toutes mes photos (photos/<uid>/) */
+export async function supprimerBoutique(id, uid) {
+  const { data, error } = await supabase.from('boutiques').delete().eq('id', id).eq('proprietaire', uid).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('Boutique introuvable ou pas à toi')
+  const { data: fichiers, error: e2 } = await supabase.storage.from('photos').list(uid, { limit: 1000 })
+  if (e2) throw e2
+  if (fichiers?.length) {
+    const { error: e3 } = await supabase.storage.from('photos').remove(fichiers.map(f => uid + '/' + f.name))
+    if (e3) throw e3
+  }
 }
 
 // ---------- Coups de cœur ----------

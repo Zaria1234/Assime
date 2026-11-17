@@ -13,6 +13,7 @@ import { rechercher, norm, categoriesDe } from '../lib/ia'
 import { ecouter, microDisponible } from '../lib/voix'
 import { chercherSurCarte } from '../lib/carte'
 import { LANGUES, voixDe } from '../i18n'
+import { horairesLisibles } from '../lib/horaires'
 
 const Card = ({ children, className = '' }) => (
   <div className={'bg-white rounded-[24px] p-3.5 border border-line shadow-[0_16px_40px_-18px_rgba(23,63,51,.45)] ' + className}>{children}</div>
@@ -39,11 +40,15 @@ function SonBouton() {
   )
 }
 
+/** Pastilles de la carte : catégories de boutiques et types de repères (mêmes icônes que les marqueurs) */
+const FILTRES_CARTE = ['Pagnes wax', 'Épices', 'Alimentation', 'Mèches et coiffure', 'Chaussures', 'Sacs', 'Cosmétiques', 'Artisanat', 'Pharmacie', 'Banque', 'Toilettes', 'Eau', 'Parking', 'Mobile money', 'Église']
+
 export function Carte() {
   const nav = useNavigate()
   const { user, moi, simule, gpsIndispo, boutiques, moto, enregistre, demarrerTrajet, trajet, langue, setLangue, raccourcis, ajouterRaccourci, retirerRaccourci, coeursDe, t, lieuTraduit } = useApp()
   const [edition, setEdition] = useState(false)
   const [nouveau, setNouveau] = useState('')
+  const [filtre, setFiltre] = useState(null) // pastille choisie : la carte n'affiche que ces lieux
   const carte = useRef(null)
   const lancer = simulation => { demarrerTrajet({ simulation: simulation || gpsIndispo }); nav('/trajet') }
   const ref = moi || trajet[trajet.length - 1]
@@ -52,10 +57,12 @@ export function Carte() {
   const i = LANGUES.findIndex(l => l.id === langue)
   const suivante = LANGUES[(i + 1) % LANGUES.length]
   const lieux = useMemo(() => LIEUX_UTILES.map(lieuTraduit), [lieuTraduit])
+  const boutiquesVues = filtre ? boutiques.filter(b => b.categorie === filtre) : boutiques
+  const lieuxVus = filtre ? lieux.filter(l => l.type === filtre) : lieux
   return (
     <Screen nav>
       <div className="relative flex-1 min-h-0">
-        <MapView className="absolute inset-0" moi={moi} moto={moto} boutiques={boutiques.map(b => ({ ...b, coeurs: coeursDe(b.id).affiches }))} lieux={lieux} showToggle={false}
+        <MapView className="absolute inset-0" moi={moi} moto={moto} boutiques={boutiquesVues.map(b => ({ ...b, coeurs: coeursDe(b.id).affiches }))} lieux={lieuxVus} showToggle={false}
           onBoutique={b => nav('/boutique/' + b.id)} fit={moi ? [moi] : undefined} controle={carte} />
         <div className="absolute left-3 right-3 top-3 z-[500] flex flex-col gap-2">
           <div className="bg-white border border-line rounded-[24px] p-1.5 flex items-center gap-2">
@@ -70,6 +77,15 @@ export function Carte() {
           <div className="h-12 rounded-full bg-white border border-line flex items-center pl-4 pr-1.5">
             <Link to="/recherche" className="flex-1 h-full flex items-center gap-2.5 no-underline text-muted"><SearchIcon size={20} /><span className="text-[14px]">{t('carte.rechercher')}</span></Link>
             <Link to="/ia" aria-label={t('carte.parlerIADirect')} className="w-9 h-9 rounded-full bg-brand text-white flex items-center justify-center"><MicIcon size={18} /></Link>
+          </div>
+          <div className="-mx-3 px-3 flex gap-1.5 overflow-x-auto no-scrollbar" role="group" aria-label={t('carte.filtres')}>
+            {FILTRES_CARTE.map(c => (
+              <button key={c} type="button" aria-pressed={filtre === c}
+                onClick={e => { setFiltre(f => (f === c ? null : c)); e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' }) }}
+                className={'h-9 pl-1 pr-3 rounded-full flex items-center gap-1.5 text-[13px] font-semibold whitespace-nowrap shrink-0 border ' + (filtre === c ? 'bg-brand text-white border-brand' : 'bg-white text-ink border-line')}>
+                <GlassIcon cat={c} size={28} />{t('filtre.' + c)}
+              </button>
+            ))}
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {raccourcis.map(c => (
@@ -312,7 +328,7 @@ export function Recherche() {
 
 export function Boutique() {
   const { id } = useParams()
-  const { boutique, moi, favoris, setFavoris, coeursDe, maBoutiqueId, setBoutiques, noterInteret, user, t, tc, zoneDe } = useApp()
+  const { boutique, moi, favoris, setFavoris, coeursDe, maBoutiqueId, setBoutiques, noterInteret, user, langue, t, tc, zoneDe } = useApp()
   const [art, setArt] = useState(0)
   const b = boutique(id)
   useEffect(() => { if (b) noterInteret(b.categorie) }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -327,7 +343,7 @@ export function Boutique() {
   const toggleFav = () => setFavoris(f => (fav ? f.filter(x => x !== b.id) : [...f, b.id]))
   const a = (b.articles || [])[art]
   const tel = (b.telephone || b.whatsapp || '').replace(/\D/g, '')
-  const horaires = !b.horaires || b.horaires === 'Horaires non indiqués' ? t('horaires.non') : b.horaires
+  const horaires = !b.horaires || b.horaires === 'Horaires non indiqués' ? t('horaires.non') : horairesLisibles(b.horaires, langue, t)
   const atouts = [[t('boutique.verifiee'), I.check, b.verifiee], [t('boutique.gros'), I.shop, true], [t('boutique.momo'), 'M7 2h10v20H7zM11 18h2', true], [t('boutique.ouvert'), 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2', true]].filter(x => x[2])
   return (
     <Screen>

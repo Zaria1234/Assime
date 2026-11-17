@@ -1,6 +1,6 @@
 // Explorer, ma liste du marché, assistant vocal, missions, profil
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useApp } from '../store'
 import { Screen, TopBar, Icon, I, MicIcon, UserIcon, EtatServeur } from '../components/ui'
 import { Wax, Ring, GlassIcon, Coeurs } from '../components/art'
@@ -9,7 +9,8 @@ import { fmtDist, fmtMoney } from '../lib/geo'
 import { assistantListe, bilan, suggestions, sectionsIA, demanderIA, appliquerOperations, phraseBudget } from '../lib/ia'
 import { ecouter, microDisponible } from '../lib/voix'
 import { voixDe } from '../i18n'
-import { ChoixLangue } from './Entree'
+import { ChoixLangue, ChampMotDePasse, Telephone, messageSimple, emailValide, telValide, empreinte, MDP_MIN } from './Entree'
+import { supabase, normaliserTel, changerEmail, verifierCodeEmail, changerTelephone, verifierMotDePasse, changerMotDePasse } from '../lib/supabase'
 
 /** Petit cercle qui tourne (chargement) */
 export const Rouage = ({ className = '' }) => (
@@ -136,6 +137,7 @@ export function Explorer() {
 export function Liste() {
   const { liste, setListe, budget, setBudget, boutiques, listes, listeActive, setListeId, nouvelleListe, supprimerListe, renommerListe, t, zoneDe } = useApp()
   const [nouveau, setNouveau] = useState('')
+  const [prixNouveau, setPrixNouveau] = useState('')
   const [creation, setCreation] = useState(false)
   const [nomListe, setNomListe] = useState('')
   const [renomme, setRenomme] = useState(false)
@@ -149,7 +151,8 @@ export function Liste() {
     e.preventDefault()
     const nom = nouveau.trim()
     if (!nom) return
-    setListe(l => [...(l || []), { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix: null, fait: false }]); setNouveau('')
+    const prix = Number(prixNouveau.replace(/\D/g, '')) || null // facultatif
+    setListe(l => [...(l || []), { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix, fait: false }]); setNouveau(''); setPrixNouveau('')
   }
   const maj = (id, patch) => setListe(l => l.map(x => (x.id === id ? { ...x, ...patch } : x)))
   const retirer = id => setListe(l => l.filter(x => x.id !== id))
@@ -191,10 +194,12 @@ export function Liste() {
           <div><div className="text-[10px] text-ink/65">{t('liste.reste')}</div><div className={'font-bold text-[14px] ' + (reste < 0 ? 'text-red-700' : 'text-[#0F5440]')}>{fmtMoney(reste)}</div></div>
         </div>
       </div>
-      <form onSubmit={ajouter} className="mx-5 mt-2.5 mb-1.5 flex gap-2">
-        <label htmlFor="nouvel" className="sr-only">{t('liste.ajouterLabel')}</label>
-        <input id="nouvel" className="field h-[46px] flex-1 min-w-0" placeholder={t('liste.ajouterPh')} value={nouveau} onChange={e => setNouveau(e.target.value)} />
-        <button type="submit" className="btn btn-main no-arrow h-[46px] text-sm">{t('commun.ajouter')}</button>
+      <form onSubmit={ajouter} className="mx-5 mt-2.5 mb-1.5 flex gap-2 items-end">
+        <label className="flex-1 min-w-0"><span className="block text-[11px] font-semibold text-muted mb-1 ml-1">{t('liste.article')}</span>
+          <input id="nouvel" className="field h-[46px]" placeholder={t('liste.ajouterPh')} value={nouveau} onChange={e => setNouveau(e.target.value)} /></label>
+        <label className="w-[92px] shrink-0"><span className="block text-[11px] font-semibold text-muted mb-1 ml-1">{t('liste.prix')}</span>
+          <input id="prix-nouvel" inputMode="numeric" className="field h-[46px] !px-3" placeholder={t('liste.prixPh')} value={prixNouveau} onChange={e => setPrixNouveau(e.target.value.replace(/[^\d\s]/g, ''))} /></label>
+        <button type="submit" disabled={!nouveau.trim()} className="btn btn-main no-arrow h-[46px] text-sm !px-3.5">{t('commun.ajouter')}</button>
       </form>
       <div className="px-5 pt-2 pb-2 flex flex-col gap-3">
         {liste.map(it => {
@@ -392,11 +397,22 @@ export function Profil() {
             <Icon d={I.chevron} size={20} />
           </button>
         ) : <Link to="/vendeur" className="btn bg-ink text-white h-12">{t('profil.espaceVendeur')}</Link>}
+        {connecte && (
+          <Link to="/profil/modifier" className="card px-3.5 py-3 flex items-center gap-3 no-underline text-ink">
+            <span className="w-9 h-9 rounded-full bg-[#E6F4EC] text-brand flex items-center justify-center"><Icon d={I.edit} size={17} /></span>
+            <b className="flex-1 text-sm">{t('profil.modifier')}</b><Icon d={I.chevron} size={18} stroke="#5B605C" />
+          </Link>
+        )}
         <Link to="/missions" className="card px-3.5 py-3 flex items-center no-underline text-ink"><b className="flex-1 text-sm">{t('profil.missions', { n: points })}</b><Icon d={I.chevron} size={18} stroke="#5B605C" /></Link>
         <div className="section-title">{t('profil.reglages')}</div>
         <div className="card p-4 flex flex-col gap-2.5">
           <span className="text-sm font-semibold">{t('profil.langue')}</span>
           <ChoixLangue />
+        </div>
+        <div className="card p-4 flex flex-col gap-2.5">
+          <span className="text-sm font-semibold">{t('profil.apparence')}</span>
+          <ChoixApparence />
+          <span className="text-xs text-muted">{t('theme.autoSous')}</span>
         </div>
         <div className="section-title">{t('profil.trajets')}</div>
         <div className="card">
@@ -426,6 +442,197 @@ export function Profil() {
           <EtatServeur />
           {user && <button type="button" onClick={deconnexion} className="w-full text-left px-3.5 py-3 text-sm font-semibold text-red-700 border-t border-[#F3EDE0]">{t('profil.deconnecter')}</button>}
         </div>
+      </div>
+    </Screen>
+  )
+}
+
+/** Apparence : Clair / Sombre / Automatique (suit le téléphone) */
+function ChoixApparence() {
+  const { apparence, setApparence, t } = useApp()
+  return (
+    <div className="grid grid-cols-3 gap-2" role="group" aria-label={t('profil.apparence')}>
+      {[['clair', t('theme.clair')], ['sombre', t('theme.sombre')], ['auto', t('theme.auto')]].map(([id, x]) => (
+        <button key={id} type="button" onClick={() => setApparence(id)} aria-pressed={apparence === id}
+          className={'h-11 rounded-full text-[14px] font-semibold ' + (apparence === id ? 'bg-[#E6F4EC] text-brand border-2 border-brand' : 'bg-white text-ink border border-line')}>{x}</button>
+      ))}
+    </div>
+  )
+}
+
+/** Message vert (réussi) ou rouge (erreur) sous un bloc du profil */
+const Retour = ({ ok, erreur }) => (
+  <>
+    {ok && <p className="text-[13px] font-semibold text-brand" role="status">{ok}</p>}
+    {erreur && <p className="text-[13px] font-semibold text-red-700" role="alert">{erreur}</p>}
+  </>
+)
+
+/** Code à 6 chiffres (e-mail ou téléphone) */
+const ChampCode = ({ id, label, value, onChange }) => (
+  <div>
+    <label htmlFor={id} className="label block mb-1.5">{label}</label>
+    <input id={id} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={value} onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+      className="field text-center font-display text-xl tracking-[0.4em]" placeholder="••••••" />
+  </div>
+)
+
+export function ModifierProfil() {
+  const { user } = useApp()
+  if (!user?.verifie) return <Navigate to="/profil" replace />
+  return <EditionProfil />
+}
+
+function EditionProfil() {
+  const { user, setUser, t } = useApp()
+  const [prenom, setPrenom] = useState(user.prenom || '')
+  const [okPrenom, setOkPrenom] = useState('')
+  // E-mail
+  const [email, setEmail] = useState('')
+  const [codeEmail, setCodeEmail] = useState('')
+  const [etapeEmail, setEtapeEmail] = useState(1)
+  const [msgEmail, setMsgEmail] = useState({})
+  // Téléphone
+  const [tel, setTel] = useState('')
+  const [codeTel, setCodeTel] = useState('')
+  const [etapeTel, setEtapeTel] = useState(1)
+  const [msgTel, setMsgTel] = useState({})
+  // Mot de passe
+  const [ancien, setAncien] = useState('')
+  const [mdp, setMdp] = useState('')
+  const [mdp2, setMdp2] = useState('')
+  const [msgMdp, setMsgMdp] = useState({})
+  const [attente, setAttente] = useState('')
+  const compteTel = !!supabase && !user.email // compte téléphone : son identifiant est le numéro
+
+  const enregistrerPrenom = e => {
+    e.preventDefault()
+    if (!prenom.trim()) return
+    setUser({ ...user, prenom: prenom.trim().slice(0, 60) })
+    setOkPrenom(t('edition.enregistre'))
+  }
+  const demanderEmail = async e => {
+    e.preventDefault()
+    if (!emailValide(email) || attente) return
+    setMsgEmail({}); setAttente('email')
+    try {
+      if (supabase) await changerEmail(email.trim())
+      setEtapeEmail(2); setMsgEmail({ ok: t('edition.emailEnvoye', { x: email.trim() }) })
+    } catch (err) { setMsgEmail({ erreur: messageSimple(err, t) }) }
+    setAttente('')
+  }
+  const validerEmail = async e => {
+    e.preventDefault()
+    if (codeEmail.length < 6 || attente) return
+    setMsgEmail({}); setAttente('email')
+    try {
+      if (supabase) {
+        await verifierCodeEmail(email.trim(), codeEmail, 'email_change')
+        const { data } = await supabase.auth.getUser()
+        // « Changement d'e-mail sécurisé » : l'ancien e-mail doit aussi confirmer
+        if (data?.user?.email !== email.trim().toLowerCase()) { setAttente(''); return setMsgEmail({ ok: t('edition.emailAncien') }) }
+      }
+      setUser({ ...user, email: email.trim().toLowerCase() })
+      setEtapeEmail(1); setEmail(''); setCodeEmail(''); setMsgEmail({ ok: t('edition.emailOk') })
+    } catch (err) { setMsgEmail({ erreur: messageSimple(err, t) }) }
+    setAttente('')
+  }
+  const demanderTel = e => {
+    e.preventDefault()
+    if (!telValide(tel)) return
+    // Code de démo pour l'instant : le vrai SMS se branchera dans codeSmsValide (api/compte.js)
+    setMsgTel({ ok: t('edition.telEnvoye', { x: '+228 ' + tel }) }); setEtapeTel(2)
+  }
+  const validerTel = async e => {
+    e.preventDefault()
+    if (codeTel.length < 6 || attente) return
+    setMsgTel({}); setAttente('tel')
+    try {
+      const nouveau = supabase ? await changerTelephone(tel, codeTel) : normaliserTel(tel)
+      setUser({ ...user, tel: nouveau })
+      setEtapeTel(1); setTel(''); setCodeTel(''); setMsgTel({ ok: t('edition.telOk') })
+    } catch (err) { setMsgTel({ erreur: messageSimple(err, t) }) }
+    setAttente('')
+  }
+  const validerMdp = async e => {
+    e.preventDefault()
+    if (!ancien || mdp.length < MDP_MIN || mdp !== mdp2 || attente) return
+    setMsgMdp({}); setAttente('mdp')
+    try {
+      if (supabase) {
+        await verifierMotDePasse(ancien).catch(err => { throw Object.assign(err, { simple: 'Mot de passe actuel incorrect' }) })
+        await changerMotDePasse(mdp)
+      } else {
+        if (user.mdp && user.mdp !== await empreinte(ancien)) throw Object.assign(new Error('ancien'), { simple: 'Mot de passe actuel incorrect' })
+        setUser({ ...user, mdp: await empreinte(mdp) })
+      }
+      setAncien(''); setMdp(''); setMdp2(''); setMsgMdp({ ok: t('edition.mdpOk') })
+    } catch (err) { setMsgMdp({ erreur: messageSimple(err, t) }) }
+    setAttente('')
+  }
+  return (
+    <Screen>
+      <TopBar title={t('edition.titre')} back="/profil" />
+      <div className="flex-1 min-h-0 scroll no-scrollbar px-5 pb-8 flex flex-col gap-4">
+        <form onSubmit={enregistrerPrenom} className="card p-4 flex flex-col gap-2.5">
+          <label htmlFor="prenom" className="label">{t('edition.prenom')}</label>
+          <input id="prenom" className="field" value={prenom} onChange={e => { setPrenom(e.target.value); setOkPrenom('') }} autoComplete="given-name" />
+          <button type="submit" disabled={!prenom.trim() || prenom.trim() === user.prenom} className="btn bg-ink text-white h-11 text-sm">{t('commun.enregistrer')}</button>
+          <Retour ok={okPrenom} />
+        </form>
+
+        <form onSubmit={etapeEmail === 1 ? demanderEmail : validerEmail} className="card p-4 flex flex-col gap-2.5">
+          <span className="label">{t('edition.email')}</span>
+          {compteTel ? <p className="text-[13px] text-muted">{t('edition.emailTel')}</p> : (
+            <>
+              <p className="text-[13px] text-muted">{user.email ? t('edition.actuel', { x: user.email }) : t('edition.aucunEmail')}</p>
+              {etapeEmail === 1 ? (
+                <>
+                  <label htmlFor="email2" className="sr-only">{t('edition.emailNouveau')}</label>
+                  <input id="email2" type="email" inputMode="email" autoComplete="email" className="field" placeholder={t('edition.emailNouveau')} value={email} onChange={e => setEmail(e.target.value)} />
+                  <button type="submit" disabled={!emailValide(email) || !!attente} className="btn bg-ink text-white h-11 text-sm">{attente === 'email' ? t('commun.envoi') : t('edition.recevoirCode')}</button>
+                </>
+              ) : (
+                <>
+                  <ChampCode id="code-email" label={t('edition.emailCode')} value={codeEmail} onChange={setCodeEmail} />
+                  {!supabase && <p className="text-xs text-muted">{t('code.aideDemo')}</p>}
+                  <button type="submit" disabled={codeEmail.length < 6 || !!attente} className="btn bg-ink text-white h-11 text-sm">{t('commun.valider')}</button>
+                  <button type="button" onClick={() => { setEtapeEmail(1); setCodeEmail(''); setMsgEmail({}) }} className="text-sm text-muted underline">{t('commun.annuler')}</button>
+                </>
+              )}
+              <Retour {...msgEmail} />
+            </>
+          )}
+        </form>
+
+        <form onSubmit={etapeTel === 1 ? demanderTel : validerTel} className="card p-4 flex flex-col gap-2.5">
+          <span className="label">{t('edition.tel')}</span>
+          <p className="text-[13px] text-muted">{user.tel ? t('edition.actuel', { x: numero(user.tel) }) : t('edition.aucunTel')}</p>
+          {etapeTel === 1 ? (
+            <>
+              <label htmlFor="tel2" className="sr-only">{t('edition.telNouveau')}</label>
+              <Telephone id="tel2" value={tel} onChange={setTel} />
+              <button type="submit" disabled={!telValide(tel)} className="btn bg-ink text-white h-11 text-sm">{t('edition.recevoirCode')}</button>
+            </>
+          ) : (
+            <>
+              <ChampCode id="code-tel" label={t('edition.telCode')} value={codeTel} onChange={setCodeTel} />
+              <p className="text-xs text-muted">{t('code.aideDemo')}</p>
+              <button type="submit" disabled={codeTel.length < 6 || !!attente} className="btn bg-ink text-white h-11 text-sm">{attente === 'tel' ? t('commun.envoi') : t('commun.valider')}</button>
+              <button type="button" onClick={() => { setEtapeTel(1); setCodeTel(''); setMsgTel({}) }} className="text-sm text-muted underline">{t('commun.annuler')}</button>
+            </>
+          )}
+          <Retour {...msgTel} />
+        </form>
+
+        <form onSubmit={validerMdp} className="card p-4 flex flex-col">
+          <span className="label">{t('edition.mdp')}</span>
+          <ChampMotDePasse id="ancien" label={t('edition.mdpAncien')} value={ancien} onChange={setAncien} autoComplete="current-password" className="mt-3" />
+          <ChampMotDePasse id="mdp" label={t('oubli.nouveau')} value={mdp} onChange={setMdp} avecSolidite className="mt-3" />
+          <ChampMotDePasse id="mdp2" label={t('mdp.confirmer')} value={mdp2} onChange={setMdp2} erreur={mdp2 && mdp !== mdp2 ? t('mdp.different') : ''} className="mt-3" />
+          <button type="submit" disabled={!ancien || mdp.length < MDP_MIN || mdp !== mdp2 || !!attente} className="btn bg-ink text-white h-11 text-sm mt-4">{attente === 'mdp' ? t('commun.envoi') : t('edition.mdpChanger')}</button>
+          <div className="mt-2"><Retour {...msgMdp} /></div>
+        </form>
       </div>
     </Screen>
   )

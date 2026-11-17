@@ -11,6 +11,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" />
     <title>Assimé — ne te perds plus au marché</title>
+    <script>
+      // Mode sombre appliqué avant l'affichage (pas d'éclair blanc) : même règle que src/store.jsx
+      try {
+        var a = JSON.parse(localStorage.getItem('assime_apparence') || '"auto"')
+        if (a === 'sombre' || (a === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('sombre')
+      } catch (e) { /* stockage indisponible : thème clair */ }
+    </script>
   </head>
   <body>
     <div id="root"></div>

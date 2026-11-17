@@ -5,7 +5,7 @@ import { BOUTIQUES_DEMO, COEURS_DEMO, LISTE_DEMO, TRAJET_DEMO, MISSIONS, MISSION
 import { MARCHE, keepPoint, offset, pathLength } from './lib/geo'
 import { parler } from './lib/voix'
 import { traduire, traduireCategorie, LANGUES } from './i18n'
-import { supabase, identite, sessionActuelle, deconnecter, chargerCompte, enregistrerListes, chargerBoutiques, enregistrerBoutique, chargerCoeurs, envoyerVote, enregistrerProfil, envoyerReleve, abonner, versLigne } from './lib/supabase'
+import { supabase, identite, sessionActuelle, deconnecter, chargerCompte, enregistrerListes, chargerBoutiques, enregistrerBoutique, supprimerBoutique, chargerCoeurs, envoyerVote, enregistrerProfil, envoyerReleve, abonner, versLigne } from './lib/supabase'
 
 // Un compte neuf commence vide : une liste sans articles, des missions à faire
 const nouvelId = () => 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
@@ -47,6 +47,20 @@ export function AppProvider({ children }) {
   const zoneDe = useCallback(b => (langue === 'fr' || !b.categorie ? b.zone : traduireCategorie(langue, b.categorie)), [langue])
   const lieuTraduit = useCallback(l => ({ ...l, nom: traduire(langue, 'lieu.' + l.id + '.nom', null, l.nom), note: traduire(langue, 'lieu.' + l.id + '.note', null, l.note) }), [langue])
   useEffect(() => { document.documentElement.lang = langue === 'ewe' ? 'ee' : langue }, [langue])
+  // Apparence : 'clair', 'sombre' ou 'auto' (suit le réglage du téléphone). Même règle dans index.html, avant l'affichage.
+  const [apparence, setApparence] = usePersist('apparence', 'auto')
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const appliquer = () => {
+      const sombre = apparence === 'sombre' || (apparence === 'auto' && !!mq?.matches)
+      document.documentElement.classList.toggle('sombre', sombre)
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', sombre ? '#111315' : '#176B52')
+    }
+    appliquer()
+    if (apparence !== 'auto' || !mq) return
+    mq.addEventListener('change', appliquer)
+    return () => mq.removeEventListener('change', appliquer)
+  }, [apparence])
   const [boutiques, setBoutiques] = usePersist('boutiques_v2', BOUTIQUES_DEMO)
   // Coups de cœur : { boutiqueId: { plus, moins } } et mon vote par boutique ('plus' | 'moins')
   const [coeurs, setCoeurs] = usePersist('coeurs', COEURS_DEMO)
@@ -293,6 +307,15 @@ export function AppProvider({ children }) {
     reinitialiserDonneesPerso(); setCompteLocal(null); setCompteCharge(null)
     setServeur(sv => ({ ...sv, uid: null, anonyme: true }))
   }
+  /** Supprime ma boutique : en ligne (ligne + photos), puis sur le téléphone */
+  const supprimerMaBoutique = async () => {
+    const id = maBoutiqueId
+    if (!id) return
+    if (supabase && serveur.etat === 'synchro' && serveur.uid) await supprimerBoutique(id, serveur.uid)
+    delete dernierEnvoi.current[id]
+    setMaBoutiqueId(null)
+    setBoutiques(bs => bs.filter(b => b.id !== id))
+  }
   const continuerSansCompte = () => {
     if (supabase) identite().then(uid => setServeur(sv => ({ ...sv, uid, anonyme: true }))).catch(() => { /* on reste en lecture seule */ })
   }
@@ -375,8 +398,8 @@ export function AppProvider({ children }) {
   const points = missions.filter(m => m.fait).reduce((s, m) => s + m.points, 0)
 
   const value = {
-    user, setUser, langue, setLangue, t, tc, zoneDe, lieuTraduit, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
-    boutiques, setBoutiques, boutique, maBoutiqueId, setMaBoutiqueId,
+    user, setUser, langue, setLangue, apparence, setApparence, t, tc, zoneDe, lieuTraduit, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
+    boutiques, setBoutiques, boutique, maBoutiqueId, setMaBoutiqueId, supprimerMaBoutique,
     coeursDe, voter, mesVotes, serveur, interets, noterInteret, activites, setActivites,
     liste, setListe, budget, setBudget, favoris, setFavoris,
     listes, listeActive: active, setListeId, nouvelleListe, supprimerListe,
