@@ -4,21 +4,22 @@
 import { distance, fmtMoney } from './geo'
 import { traduire, traduireCategorie } from '../i18n'
 
-export const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+const LETTRES_EWE = { 'ɔ': 'o', 'ɛ': 'e', 'ƒ': 'f', 'ɖ': 'd', 'ŋ': 'ng', 'ɣ': 'g', 'ʋ': 'v' }
+export const norm = s => (s || '').toLowerCase().replace(/[ɔɛƒɖŋɣʋ]/g, c => LETTRES_EWE[c]).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
 const SYNONYMES = {
-  'Pagnes wax': ['pagne', 'wax', 'bazin', 'tissu wax', 'yards', 'loincloth'],
+  'Pagnes wax': ['pagne', 'wax', 'bazin', 'tissu wax', 'yards', 'loincloth', 'avo'],
   Tissus: ['tissu', 'etoffe', 'bazin', 'fabric', 'cloth'],
-  Épices: ['epice', 'piment', 'poivre', 'gingembre', 'condiment', 'spice', 'pepper', 'chili', 'ginger'],
+  Épices: ['epice', 'piment', 'poivre', 'gingembre', 'condiment', 'spice', 'pepper', 'chili', 'ginger', 'atadi'],
   Friperie: ['fripe', 'friperie', 'vetement', 'clothes', 'clothing', 'secondhand'],
-  Chaussures: ['chaussure', 'sandale', 'basket', 'soulier', 'shoe', 'sneaker', 'sandal'],
-  Cosmétiques: ['cosmetique', 'creme', 'savon', 'beaute', 'parfum', 'soap', 'cream', 'beauty', 'perfume'],
-  'Perles et bijoux': ['perle', 'bijou', 'collier', 'bracelet', 'bead', 'jewel', 'jewelry', 'necklace'],
-  Sacs: ['sac', 'maroquinerie', 'valise', 'bag', 'handbag', 'suitcase'],
+  Chaussures: ['chaussure', 'sandale', 'basket', 'soulier', 'shoe', 'sneaker', 'sandal', 'afokpa'],
+  Cosmétiques: ['cosmetique', 'creme', 'savon', 'beaute', 'parfum', 'soap', 'cream', 'beauty', 'perfume', 'adzale'],
+  'Perles et bijoux': ['perle', 'bijou', 'collier', 'bracelet', 'bead', 'jewel', 'jewelry', 'necklace', 'dzonu'],
+  Sacs: ['sac', 'maroquinerie', 'valise', 'bag', 'handbag', 'suitcase', 'kotoku'],
   Vaisselle: ['vaisselle', 'assiette', 'marmite', 'ustensile', 'dish', 'plate'],
   Alimentation: ['riz', 'huile', 'farine', 'sucre', 'lait', 'nourriture', 'aliment', 'alimentation', 'manger', 'tomate', 'conserve', 'haricot', 'pate', 'spaghetti', 'gari', 'igname',
-    'rice', 'oil', 'flour', 'sugar', 'milk', 'food', 'beans', 'yam'],
-  'Mèches et coiffure': ['meche', 'perruque', 'tresse', 'coiffure', 'cheveux', 'rajout', 'coiffeuse', 'hair', 'wig', 'braid', 'extension'],
+    'rice', 'oil', 'flour', 'sugar', 'milk', 'food', 'beans', 'yam', 'moli', 'nududu', 'te'],
+  'Mèches et coiffure': ['meche', 'perruque', 'tresse', 'coiffure', 'cheveux', 'rajout', 'coiffeuse', 'hair', 'wig', 'braid', 'extension', 'da', 'dabobo'],
   Artisanat: ['souvenir', 'artisanat', 'sculpture', 'masque', 'cadeau', 'touriste', 'statuette', 'panier', 'gift', 'craft', 'mask'],
 }
 
@@ -31,12 +32,14 @@ const VIDES = new Set(('je j tu il on me moi ma mon mes ta ton te un une des de 
   + 'plus moins tres bien bon bonne pas cher chere chers petit prix proche proches pres loin cote autour '
   + 'marche grand assigame asigame assivito lome togo quartier ville ce cette ces qui que quoi quel quelle quels quelles avec pour sur dans par '
   // mots anglais qui ne disent rien sur ce qu'on cherche
-  + 'i im looking look for find where is are the an some any want need buy shop shops store stores market near close cheap cheapest wholesale bulk to of in at me take show please do you know can there what which').split(' '))
+  + 'i im looking look for find where is are the an some any want need buy shop shops store stores market near close cheap cheapest wholesale bulk to of in at me take show please do you know can there what which '
+  // mots éwé qui ne disent rien sur ce qu'on cherche
+  + 'mele dim nele afi ka kae le la mate ngu akpo kpo enya nenya kplom yi nye nam wo me ade fiase asime ga nenie suso').split(' '))
 
 const REPERES = {
-  Pharmacie: ['pharmacie', 'medicament', 'malade', 'pharmacy', 'drugstore', 'medicine'], Banque: ['banque', 'ecobank', 'argent', 'retrait', 'guichet', 'bank', 'cash', 'atm'],
-  Église: ['eglise', 'cathedrale', 'messe', 'sacre', 'church', 'cathedral'], Librairie: ['librairie', 'papeterie', 'livre', 'cahier', 'pasteur', 'bookshop', 'bookstore', 'book'],
-  Toilettes: ['toilette', 'wc', 'pipi', 'toilet', 'restroom', 'bathroom'], Eau: ['eau', 'boire', 'soif', 'water', 'drink'], Parking: ['parking', 'garer', 'stationner', 'park'],
+  Pharmacie: ['pharmacie', 'medicament', 'malade', 'pharmacy', 'drugstore', 'medicine', 'atikedzrafe', 'atike'], Banque: ['banque', 'ecobank', 'argent', 'retrait', 'guichet', 'bank', 'cash', 'atm', 'gadzradofe'],
+  Église: ['eglise', 'cathedrale', 'messe', 'sacre', 'church', 'cathedral', 'solemexo'], Librairie: ['librairie', 'papeterie', 'livre', 'cahier', 'pasteur', 'bookshop', 'bookstore', 'book'],
+  Toilettes: ['toilette', 'wc', 'pipi', 'toilet', 'restroom', 'bathroom', 'afodzi'], Eau: ['eau', 'boire', 'soif', 'water', 'drink', 'tsi'], Parking: ['parking', 'garer', 'stationner', 'park'],
   'Mobile money': ['momo', 'flooz', 'tmoney', 'mobile', 'depot'], Section: ['section', 'atipoji'],
 }
 
@@ -60,9 +63,9 @@ export function rechercher(texte, boutiques, position, lieux = [], langue = 'fr'
   const t = norm(texte)
   const w = mots(texte)
   const cats = categoriesDe(texte)
-  const gros = /\b(en gros|grossiste|gros|wholesale|bulk)\b/.test(t)
+  const gros = /\b(en gros|grossiste|gros|wholesale|bulk|agbososo)\b/.test(t)
   const pasCher = /pas cher|moins cher|petit prix|bon prix|cheap|low price/.test(t)
-  const utiles = w.filter(x => x.length >= 3 && !VIDES.has(x) && !['gros', 'grossiste'].includes(x))
+  const utiles = w.filter(x => x.length >= 3 && !VIDES.has(x) && !['gros', 'grossiste', 'agbososo'].includes(x))
   const libres = utiles.filter(x => !Object.values(SYNONYMES).flat().some(m => colle(x, m)) && !Object.values(REPERES).flat().some(m => colle(x, m)))
   const dist = p => (position ? distance(position, p) : null)
 
@@ -85,8 +88,8 @@ export function rechercher(texte, boutiques, position, lieux = [], langue = 'fr'
   const metres = d => (d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', en ? '.' : ',') + ' km')
   const loin = d => (d != null ? T('iaL.dist', { d: metres(d) }) : '')
   const de = x => (/^[aeiouyéèêh]/i.test(x) ? " d'" : ' de ') + x
-  // En éwé, ces phrases restent en français (traduction à vérifier) : on garde donc la grammaire française
-  const quoi = cats.length ? (en ? ' for ' + traduireCategorie('en', cats[0]).toLowerCase() : de(cats[0].toLowerCase())) : ''
+  const quoi = !cats.length ? '' : en ? ' for ' + traduireCategorie('en', cats[0]).toLowerCase()
+    : langue === 'ewe' ? ' (' + traduireCategorie('ewe', cats[0]) + ')' : de(cats[0].toLowerCase())
   const enGros = gros ? T('iaL.gros') : ''
   let reponse, inconnu = null
   if (res.length) {
@@ -151,9 +154,17 @@ export function assistantListe(texte, liste, budget, boutiques = [], langue = 'f
     return { liste, reponse: apres >= 0 ? T('iaL.siOui', { m: fmtMoney(apres) }) : T('iaL.siNon', { m: fmtMoney(-apres) }) }
   }
 
-  if (/(combien|reste|depense|budget|bilan|how much|left|spent)/.test(t) && !/(trouve|achete|pris|found|bought)/.test(t)) {
+  if (/(combien|reste|depense|budget|bilan|how much|left|spent|nenie|suso)/.test(t) && !/(trouve|achete|pris|found|bought|mekpo|mefle)/.test(t)) {
     const { depense, reste, restants } = bilan(liste, budget)
     return { liste, reponse: T('iaL.bilan', { d: fmtMoney(depense), b: fmtMoney(budget), r: fmtMoney(reste) }) + encore(restants) }
+  }
+
+  // Éwé : « Tsɔ adzalẽ kpe ɖe eŋu »
+  const ajoutEwe = /^\s*tsɔ\s+(.+?)\s+kpe\s+ɖe\s+(eŋu|nye nuŋlɔɖi ŋu)/i.exec(texte)
+  if (ajoutEwe) {
+    const nom = ajoutEwe[1].trim()
+    const nouveau = { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix: null, fait: false }
+    return { liste: [...liste, nouveau], reponse: T('iaL.note', { nom: nouveau.nom }) }
   }
 
   if (/^(ajoute|rajoute|note|mets|add|put)\b/.test(t)) {
@@ -164,12 +175,13 @@ export function assistantListe(texte, liste, budget, boutiques = [], langue = 'f
     return { liste: [...liste, nouveau], reponse: T('iaL.note', { nom: nouveau.nom }) }
   }
 
-  if (/(trouve|achete|pris|coche|eu |found|bought|got|tick)/.test(t)) {
+  if (/(trouve|achete|pris|coche|eu |found|bought|got|tick|mekpo|mefle)/.test(t)) {
     let it = meilleurArticle(texte, liste)
     let base = liste
     if (!it) {
       // Article absent : on l'ajoute directement, déjà trouvé
       const m = texte.match(/(?:trouv[ée]|achet[ée]|pris|coch[ée]?|found|bought|got|ticked?)\s+(?:les?|la|l'|des|du|de la|un|une|the|some|an|a)?\s*(.+?)(?:\s+(?:a|à|pour|for|at)\s+\d.*)?$/i)
+        || texte.match(/(?:mekpɔ|meƒle)\s+(.+?)(?:\s+le\s+\d.*)?$/i)
       const nom = (m ? m[1] : 'Article').trim()
       it = { id: Date.now(), nom: nom.charAt(0).toUpperCase() + nom.slice(1), prix: null, fait: false }
       base = [...liste, it]

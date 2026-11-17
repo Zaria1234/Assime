@@ -1,5 +1,11 @@
 # Journal des versions
 
+## 1.9.1 — 17 novembre 2026
+
+- **Éwé partout** : toutes les phrases de l'app (écrans, catégories, repères, missions, réponses de l'IA hors ligne, messages d'erreur) sont traduites dans `src/i18n-ewe.js`. Traduction proposée, **à faire vérifier** (`docs/TRADUCTIONS.md`, cases à cocher).
+- **IA en éwé** : Gemini répond toujours en éwé quand l'éwé est choisi (avant : en français s'il n'était pas sûr). L'IA de secours (sans internet) comprend aussi les phrases éwé simples (lettres ɔ, ɛ, ƒ, ɖ, ŋ reconnues, mots comme atikedzraƒe, mɔli, ɖa, agbɔsɔsɔ, susɔ, gɔmedzeƒe).
+- Page d'accueil : ordre des mots éwé respecté (« Mèga bu le Asigamé o. »).
+
 ## 1.9.0 — 17 novembre 2026
 
 ### Langues : Éwé · Français · English
@@ -7,7 +13,7 @@
 - Toucher une langue change **tout l'écran tout de suite** ; le bouton choisi est en surbrillance. Choix en haut des slides, sur la page d'accueil, sur la carte et dans **Profil → Réglages**. La langue est gardée sur le téléphone (`assime_langue_v2`, français par défaut).
 - **L'IA répond dans la langue choisie** (`langue` envoyée à `/api/ia` et ajoutée aux consignes ; l'IA locale répond aussi en anglais et comprend des phrases simples en anglais).
 - **Voix** : fr-FR (français et éwé) ou en-US (anglais), pour la lecture et le micro.
-- **Éwé** : phrases courtes traduites, **à faire vérifier** ; tout le reste s'affiche en français. Liste complète dans `docs/TRADUCTIONS.md` (générée depuis le dictionnaire).
+- **Éwé** : toute l'app est traduite (`src/i18n-ewe.js`, 521 phrases), **à faire vérifier** par une personne qui parle éwé ; une phrase retirée s'affiche en français. Liste complète dans `docs/TRADUCTIONS.md` (générée depuis le dictionnaire).
 
 ### Carte
 - **La carte ne se recadre plus toute seule** : elle se centre une seule fois à l'ouverture (ou au démarrage d'un guidage). Le GPS ne touche plus jamais au zoom ni à la position.

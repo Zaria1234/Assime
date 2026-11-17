@@ -56,6 +56,14 @@ Garde-fous :
 | « Combien il me reste ? » | Phrase exacte calculée par l'app |
 | « Ramène-moi à mon point de départ » | Bouton « Retour à mon point de départ » |
 
+### Langue de la réponse
+
+L'IA répond dans la langue choisie dans l'app (`langue` envoyée à `api/ia.js`) :
+
+- **Français** et **English** : réponse dans la langue.
+- **Éwé** : Gemini doit toujours répondre en éwé. Son éwé est approximatif : **à faire relire** par une personne qui parle éwé avant une vraie démonstration.
+- **Sans internet** (IA de secours, `src/lib/ia.js`) : elle comprend le français, l'anglais et les phrases éwé simples (« Afi ka atikedzraƒe la le? », « Mele mɔli dim le agbɔsɔsɔ me », « Ga nenie susɔ nam? », « Tsɔ adzalẽ kpe ɖe eŋu », « Mekpɔ afɔkpawo le 8 000 », « Kplɔm yi nye gɔmedzeƒe »). Elle répond avec les phrases de `src/i18n-ewe.js`.
+
 ## Activer Gemini
 
 ### 1. Créer la clé (2 minutes, gratuit)

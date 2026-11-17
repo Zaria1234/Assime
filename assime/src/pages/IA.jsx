@@ -26,8 +26,8 @@ function direEtAttendre(texte, lang) {
   })
 }
 
-const LISTE = /ajoute|trouv|achet|pris |coche|reste|combien|budget|si je prends|depens|\badd\b|found|bought|how much|left|spent|if i (take|buy)/i
-const RETOUR = /moto|retour|ramene|ramène|point de d[ée]part|take me back|starting point|way back/i
+const LISTE = /ajoute|trouv|achet|pris |coche|reste|combien|budget|si je prends|depens|\badd\b|found|bought|how much|left|spent|if i (take|buy)|susɔ|nenie|mekpɔ|meƒle|kpe ɖe eŋu/i
+const RETOUR = /moto|retour|ramene|ramène|point de d[ée]part|take me back|starting point|way back|gɔmedzeƒe/i
 const PUCES = ['ia.c1', 'ia.c2', 'ia.c3', 'ia.c4', 'ia.c5', 'ia.c6']
 
 export default function IA() {

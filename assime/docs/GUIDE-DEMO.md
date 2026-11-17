@@ -62,7 +62,7 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 
 ### 8. Conclusion — 15 s
 
-> « Assimé aide l'acheteur à ne plus se perdre, et le vendeur à être trouvé. Prochaines étapes : le relevé des allées du marché, les voix et la traduction complète en éwé, et le back-end. »
+> « Assimé aide l'acheteur à ne plus se perdre, et le vendeur à être trouvé. Prochaines étapes : le relevé des allées du marché, les voix en éwé, la vérification de la traduction éwé, et le back-end. »
 
 ---
 
@@ -73,6 +73,6 @@ Parcours conseillé pour présenter l'app au jury en **3 à 4 minutes**.
 | Le GPS est-il assez précis dans le marché ? | On filtre les points imprécis (plus de 25 m d'erreur) et on enregistre le chemin réel. Le retour suit les pas, pas une ligne droite. |
 | Pourquoi pas Google Maps ? | Google ne connaît ni les allées ni les stands. Assimé enregistre **ton** chemin et les vendeurs placent **eux-mêmes** leur stand. |
 | Où est l'IA ? | Recherche en langage naturel, assistant de liste, sections « Pour toi », conversation vocale. Démo locale, branchée à un vrai modèle ensuite. |
-| Et l'éwé ? | L'écran est traduit en partie (phrases à vérifier dans `docs/TRADUCTIONS.md`, le reste en français). Les navigateurs ne savent pas parler éwé : la voix reste en français, des fichiers audio sont prévus. |
+| Et l'éwé ? | Tout l'écran est traduit (traduction à faire vérifier, liste dans `docs/TRADUCTIONS.md`). Les navigateurs ne savent pas parler éwé : la voix reste en français, des fichiers audio sont prévus. |
 | Comment gagner de l'argent ? | Pistes à confirmer par l'équipe : mise en avant des boutiques, outils pour grossistes, partenariats. |
 | Les données des vendeurs ? | Aujourd'hui sur le téléphone. Demain sur Supabase, avec des règles d'accès : chaque vendeur ne modifie que sa boutique. |

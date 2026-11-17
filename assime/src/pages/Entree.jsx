@@ -63,7 +63,7 @@ export function Bienvenue() {
         <span className="absolute right-3 top-3 px-2.5 py-1 rounded-full bg-white text-ink text-[11px] font-bold shadow">{t('accueil.etiquette')}</span>
       </div>
       <h1 className="h-display text-[36px] leading-[1.05] mt-6 relative">
-        {t('accueil.avant')} <span className="text-ink/35">{t('accueil.mot')}</span> {t('accueil.apres')} <span className="text-brand">Asigamé.</span>
+        {t('accueil.avant')} <span className="text-ink/35">{t('accueil.mot')}</span> {t('accueil.apres')} <span className="text-brand">Asigamé</span>{t('accueil.fin')}.
       </h1>
       <p className="text-[15px] text-muted leading-relaxed mt-2.5 relative">{t('accueil.sous')}</p>
       <ChoixLangue className="mt-5 relative" />

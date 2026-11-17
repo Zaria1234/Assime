@@ -312,7 +312,7 @@ export function Recherche() {
 
 export function Boutique() {
   const { id } = useParams()
-  const { boutique, moi, favoris, setFavoris, coeursDe, maBoutiqueId, setBoutiques, noterInteret, user, t, tc } = useApp()
+  const { boutique, moi, favoris, setFavoris, coeursDe, maBoutiqueId, setBoutiques, noterInteret, user, t, tc, zoneDe } = useApp()
   const [art, setArt] = useState(0)
   const b = boutique(id)
   useEffect(() => { if (b) noterInteret(b.categorie) }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -353,7 +353,7 @@ export function Boutique() {
             {b.photo && <img src={b.photo} alt="" className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow mb-2" />}
             <div className="flex flex-wrap gap-1.5 mb-2.5"><span className="inline-flex items-center h-6 px-2.5 rounded-full bg-white text-[11px] font-bold">{tc(b.categorie)}{moi ? ' · ' + fmtDist(distance(moi, b.pos)) : ''}</span><Coeurs n={coeursDe(b.id).affiches} /></div>
             <h1 className="h-display text-[30px] leading-[1.05]">{b.nom}</h1>
-            <div className="text-[13px] text-ink/70 mt-1">{b.zone} · {horaires}</div>
+            <div className="text-[13px] text-ink/70 mt-1">{zoneDe(b)} · {horaires}</div>
           </div>
         </div>
         <div className="px-5 pt-6 pb-32 flex flex-col gap-6">
@@ -414,7 +414,7 @@ export function Guidage() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const nav = useNavigate()
-  const { boutique, moi, dire, arrets, marquerArret, enPause, poursuivre, t, lieuTraduit } = useApp()
+  const { boutique, moi, dire, arrets, marquerArret, enPause, poursuivre, t, lieuTraduit, zoneDe } = useApp()
   const [demarre, setDemarre] = useState(false)
   const [fini, setFini] = useState(false)
   const [recadrer, setRecadrer] = useState(0)
@@ -450,7 +450,7 @@ export function Guidage() {
         <Card className="flex flex-col gap-2.5">
           <div className="flex items-center gap-3">
             {cible.categorie ? <Wax image={cible.couverture} className="w-11 h-11 rounded-[14px] shrink-0" /> : <GlassIcon cat={cible.type} size={44} />}
-            <div className="flex-1 min-w-0"><div className="font-bold truncate">{cible.nom}</div><div className="text-[12px] text-muted truncate">{cible.note || cible.zone}</div></div>
+            <div className="flex-1 min-w-0"><div className="font-bold truncate">{cible.nom}</div><div className="text-[12px] text-muted truncate">{cible.note || (cible.zone && zoneDe(cible))}</div></div>
             {d !== null && <div className="h-display text-lg">{Math.max(1, Math.round(d / 70))} min</div>}
           </div>
           {fini && cible.categorie ? (

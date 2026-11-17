@@ -134,7 +134,7 @@ export default function Decouverte() {
   const { user, t, langue, setLangue } = useApp()
   // Déjà connecté (venu de Profil → « Découvrir Assimé ») : les 6 slides seulement, sans les boutons de compte
   const connecte = !!user?.verifie
-  const slides = (connecte ? SLIDES : [...SLIDES, ACCUEIL]).map(x => (x.accueil ? { ...x, titre: t('accueil.avant') + ' ' + t('accueil.mot') + ' ' + t('accueil.apres') + ' Asigamé' } : { ...x, titre: t('decouverte.' + x.id + '.titre'), texte: t('decouverte.' + x.id + '.texte') }))
+  const slides = (connecte ? SLIDES : [...SLIDES, ACCUEIL]).map(x => (x.accueil ? { ...x, titre: t('accueil.avant') + ' ' + t('accueil.mot') + ' ' + t('accueil.apres') + ' Asigamé' + t('accueil.fin') } : { ...x, titre: t('decouverte.' + x.id + '.titre'), texte: t('decouverte.' + x.id + '.texte') }))
   const N = slides.length
   const [index, setIndex] = useState(0)
   const [glisse, setGlisse] = useState(0) // déplacement du doigt en cours, en pixels

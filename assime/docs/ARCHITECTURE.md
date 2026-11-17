@@ -102,7 +102,7 @@ Ces fonctions servent de **secours**. La vraie IA est **Gemini** : `demanderIA()
 ### Voix (`lib/voix.js`)
 
 - `ecouter()` : reconnaissance vocale du navigateur, en **français**.
-- `parler()` : synthèse vocale en fr-FR (français et éwé) ou en-US (anglais). Pour l'éwé, prévoir des fichiers audio dans `public/audio/ewe/`. Tous les textes de l'écran passent par `t()` (`src/i18n.js`).
+- `parler()` : synthèse vocale en fr-FR (français et éwé) ou en-US (anglais). Pour l'éwé, prévoir des fichiers audio dans `public/audio/ewe/`. Tous les textes de l'écran passent par `t()` (`src/i18n.js`, éwé dans `src/i18n-ewe.js`).
 - `dire()` (dans le store) ne parle que si le son est activé. Couper le son arrête immédiatement la voix.
 
 ### Photos (`lib/image.js`)

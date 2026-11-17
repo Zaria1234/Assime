@@ -43,6 +43,8 @@ export function AppProvider({ children }) {
   const t = useCallback((cle, vars) => traduire(langue, cle, vars), [langue])
   const tc = useCallback(cat => traduireCategorie(langue, cat), [langue])
   // Repère du marché dans la langue choisie (nom et indication) ; les noms propres restent tels quels
+  // Zone d'une boutique (« Zone des pagnes », écrite par l'app en français) : dans les autres langues, la catégorie traduite
+  const zoneDe = useCallback(b => (langue === 'fr' || !b.categorie ? b.zone : traduireCategorie(langue, b.categorie)), [langue])
   const lieuTraduit = useCallback(l => ({ ...l, nom: traduire(langue, 'lieu.' + l.id + '.nom', null, l.nom), note: traduire(langue, 'lieu.' + l.id + '.note', null, l.note) }), [langue])
   useEffect(() => { document.documentElement.lang = langue === 'ewe' ? 'ee' : langue }, [langue])
   const [boutiques, setBoutiques] = usePersist('boutiques_v2', BOUTIQUES_DEMO)
@@ -373,7 +375,7 @@ export function AppProvider({ children }) {
   const points = missions.filter(m => m.fait).reduce((s, m) => s + m.points, 0)
 
   const value = {
-    user, setUser, langue, setLangue, t, tc, lieuTraduit, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
+    user, setUser, langue, setLangue, t, tc, zoneDe, lieuTraduit, ouvrirSession, seDeconnecter, continuerSansCompte, compteCharge, reinitialiserDonneesPerso,
     boutiques, setBoutiques, boutique, maBoutiqueId, setMaBoutiqueId,
     coeursDe, voter, mesVotes, serveur, interets, noterInteret, activites, setActivites,
     liste, setListe, budget, setBudget, favoris, setFavoris,

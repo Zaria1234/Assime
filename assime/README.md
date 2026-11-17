@@ -41,7 +41,7 @@ Le Grand Marché d'Asigamé est immense, dense, sans plan. On s'y perd, on ne re
 | Domaine | Ce qui marche | Écran |
 | --- | --- | --- |
 | **Compte** | Inscription (prénom, téléphone, acheteur/vendeur), connexion par code SMS ou WhatsApp (démo : tout code à 6 chiffres) | `/bienvenue` `/inscription` `/connexion` |
-| **Carte** | Position GPS, boutiques et repères, recherche, raccourcis personnalisables, langue (éwé / français / anglais, voir `src/i18n.js`), bouton « Recentrer » | `/carte` |
+| **Carte** | Position GPS, boutiques et repères, recherche, raccourcis personnalisables, langue (éwé / français / anglais, voir `src/i18n.js` et `src/i18n-ewe.js`), bouton « Recentrer » | `/carte` |
 | **Trajet** | Enregistrement GPS filtré, **arrêts**, « Arrêter » (pause) puis « Continuer », « Retourner à mon point de départ », mode démo | `/trajet` |
 | **Retour à la moto** | Chemin inverse **sans les boucles**, distance, temps, voix, bouton « Couper le son » | `/retour` |
 | **Guidage** | **Par les vraies rues** (OpenStreetMap), distance réelle, consigne de virage, arrêts, coup de cœur à l'arrivée | `/guidage/:id` |

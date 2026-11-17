@@ -4,6 +4,8 @@
 // - avec une variable n, la forme « cle.pl » (si elle existe) sert au pluriel ;
 // - texte absent en éwé → français (les phrases éwé à vérifier sont listées dans docs/TRADUCTIONS.md).
 
+import { ewe } from './i18n-ewe.js'
+
 export const LANGUES = [
   { id: 'ewe', nom: 'Éwé', court: 'Éwé' },
   { id: 'fr', nom: 'Français', court: 'FR' },
@@ -74,6 +76,7 @@ const fr = {
   'accueil.avant': 'Ne te',
   'accueil.mot': 'perds',
   'accueil.apres': 'plus à',
+  'accueil.fin': '',
   'accueil.sous': 'Retrouve ta moto, trouve ta boutique, gère ton budget. Guidé·e dans ta langue.',
   'accueil.creer': 'Créer mon compte',
   'accueil.deja': "J'ai déjà un compte",
@@ -558,6 +561,7 @@ const en = {
   'accueil.avant': "Don't get",
   'accueil.mot': 'lost',
   'accueil.apres': 'in',
+  'accueil.fin': '',
   'accueil.sous': 'Find your motorbike, find your shop, manage your budget. Guided in your language.',
   'accueil.creer': 'Create my account',
   'accueil.deja': 'I already have an account',
@@ -1005,28 +1009,7 @@ const en = {
   'srv.Comptes indisponibles sur le serveur': 'Accounts unavailable on the server',
 }
 
-// Éwé : seulement des phrases courtes, À FAIRE VÉRIFIER par une personne qui parle éwé (docs/TRADUCTIONS.md).
-// Tout ce qui manque ici s'affiche en français.
-const ewe = {
-  'decouverte.s1.titre': 'Woezɔ va Asigamé',
-  'decouverte.s2.titre': 'Yi afi si nèdi',
-  'decouverte.s4.titre': 'Ƒo nu kple IA',
-  'decouverte.s6.titre': 'Èdzraa nu le asime ?',
-  'carte.bonjour': 'Woezɔ {nom}',
-  'carte.question': 'Afi kae nàyi egbea ?',
-  'recherche.titre': 'Nukae nèle dim ?',
-  'commun.arrive': 'Èva ɖo !',
-  'commun.yAller': 'Yi afi ma',
-  'commun.arreter': 'Nɔ te',
-  'trajet.arreter': 'Nɔ te',
-  'trajet.continuer': 'Yi edzi',
-  'commun.terminer': 'Wu enu',
-  'commun.ajouter': 'Kpe ɖe eŋu',
-  'boutique.appeler': 'Yɔe',
-  'ia.envoyer': 'Ðoe ɖa',
-  'liste.reste': 'Esi susɔ',
-  'commun.langue': 'Gbe',
-}
+// Éwé : dans src/i18n-ewe.js (à faire vérifier, voir docs/TRADUCTIONS.md). Ce qui manque s'affiche en français.
 
 export const DICTIONNAIRES = { fr, en, ewe }
 

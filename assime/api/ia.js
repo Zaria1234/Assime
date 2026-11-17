@@ -33,10 +33,10 @@ Méthode :
 const LANGUE_REPONSE = {
   fr: 'Réponds en français.',
   en: 'Answer in simple English (the user chose English in the app), still using informal « you ». Keep shop and place names as they are.',
-  ewe: "La personne a choisi l'éwé (langue du Togo). Réponds en éwé simple si tu en es sûr ; sinon réponds en français simple. Garde les noms de boutiques et de lieux tels quels.",
+  ewe: "La personne a choisi l'éwé (Eʋegbe, langue du Togo) dans l'app. Réponds TOUJOURS en éwé simple et court, avec l'orthographe éwé (ɖ, ƒ, ɣ, ŋ, ɔ, ɛ, ʋ), jamais en français. Garde les noms de boutiques, de rues et de lieux tels quels.",
 }
 const INCOMPRIS = "Je n'ai pas bien compris. Tu peux répéter ?"
-const fallbackIncompris = { fr: INCOMPRIS, en: "I didn't quite understand. Can you say it again?", ewe: INCOMPRIS }
+const fallbackIncompris = { fr: INCOMPRIS, en: "I didn't quite understand. Can you say it again?", ewe: "Nyemese egɔme nyuie o. Àte ŋu agagblɔe?" }
 
 /** Appel à Gemini, avec bascule sur le modèle de secours si le principal est indisponible */
 async function gemini(ctx, corps) {

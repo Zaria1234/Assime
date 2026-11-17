@@ -134,7 +134,7 @@ export function Explorer() {
 }
 
 export function Liste() {
-  const { liste, setListe, budget, setBudget, boutiques, listes, listeActive, setListeId, nouvelleListe, supprimerListe, renommerListe, t } = useApp()
+  const { liste, setListe, budget, setBudget, boutiques, listes, listeActive, setListeId, nouvelleListe, supprimerListe, renommerListe, t, zoneDe } = useApp()
   const [nouveau, setNouveau] = useState('')
   const [creation, setCreation] = useState(false)
   const [nomListe, setNomListe] = useState('')
@@ -225,7 +225,7 @@ export function Liste() {
                   <span className={'font-semibold text-sm shrink-0 ' + (it.prix ? '' : 'text-[#B9C4BE]')}>{it.prix ? fmtMoney(it.prix) + ' F' : t('liste.prixInconnu')}</span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-                  <span className="flex-1 truncate">{sugg.length ? t('liste.sugg', { n: sugg.length, zone: sugg[0].zone.toLowerCase() }) : t('liste.aucuneSugg')}</span>
+                  <span className="flex-1 truncate">{sugg.length ? t('liste.sugg', { n: sugg.length, zone: zoneDe(sugg[0]).toLowerCase() }) : t('liste.aucuneSugg')}</span>
                   {sugg[0] && !it.fait && <Link to={'/guidage/' + sugg[0].id} className="font-semibold text-[#137A52]">{t('commun.yAller')}</Link>}
                 </div>
               </div>
